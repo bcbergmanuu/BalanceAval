@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BalanceAval.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="BalanceAval.Views.MainWindow"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="BalanceAval">
+
+	<Design.DataContext>
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+
+	<Grid>
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+
+
+		</Grid.RowDefinitions>
+
+
+		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+			<Button Margin="6" Command="{Binding Start}">Start</Button>
+			<Button Margin="6" Command="{Binding Stop}">Stop</Button>
+		</StackPanel>
+		<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" HorizontalAlignment="Left">
+			<ItemsControl  Items="{Binding CartesianViewModels }">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<StackPanel Orientation="Vertical">
+							<TextBlock Text="{Binding Name}"></TextBlock>
+							<lvc:CartesianChart Series="{Binding Series}" Height="200" Width="600"></lvc:CartesianChart>
+						</StackPanel>
+
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
+	</Grid>
+
+</Window>

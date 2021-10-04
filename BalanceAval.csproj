@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="0.10.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="0.10.3" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="0.10.3" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="LiveChartsCore">
+      <HintPath>..\LiveCharts2\src\skiasharp\LiveChartsCore.SkiaSharp.Avalonia\bin\Release\netcoreapp2.0\LiveChartsCore.dll</HintPath>
+    </Reference>
+    <Reference Include="LiveChartsCore.SkiaSharpView">
+      <HintPath>..\LiveCharts2\src\skiasharp\LiveChartsCore.SkiaSharp.Avalonia\bin\Release\netcoreapp2.0\LiveChartsCore.SkiaSharpView.dll</HintPath>
+    </Reference>
+    <Reference Include="LiveChartsCore.SkiaSharpView.Avalonia">
+      <HintPath>..\LiveCharts2\src\skiasharp\LiveChartsCore.SkiaSharp.Avalonia\bin\Release\netcoreapp2.0\LiveChartsCore.SkiaSharpView.Avalonia.dll</HintPath>
+    </Reference>
+    <Reference Include="NationalInstruments.Common">
+      <HintPath>..\..\..\Program Files (x86)\National Instruments\Measurement Studio\DotNET\v4.0\AnyCPU\NationalInstruments.Common 19.0.40\NationalInstruments.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="NationalInstruments.DAQmx">
+      <HintPath>..\..\..\Program Files (x86)\National Instruments\MeasurementStudioVS2012\DotNET\Assemblies\Current\NationalInstruments.DAQmx.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Views\Cartesiangraph.axaml.cs">
+      <DependentUpon>Cartesiangraph.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+</Project>
