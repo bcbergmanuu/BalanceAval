@@ -1,9 +1,15 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Input;
+using Avalonia.Controls;
+using BalanceAval.Models;
 using BalanceAval.Service;
+using CsvHelper;
+using CsvHelper.Configuration;
 using LiveChartsCore;
 using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
@@ -13,11 +19,6 @@ using SkiaSharp;
 
 namespace BalanceAval.ViewModels
 {
-    public interface IMainWindowViewModel
-    {
-
-    }
-
     public class MainWindowViewModel : ViewModelBase, IMainWindowViewModel
     {
         private readonly IReadNidaq _nidaq;
@@ -33,15 +34,7 @@ namespace BalanceAval.ViewModels
             nidaq.DataReceived += Nidaq_DataReceived;
 
 
-            observableValues = new ObservableCollection<WeightedPoint>
-            {
-                new WeightedPoint(0, 0, 1)
-            };
-
-            Series = new ObservableCollection<ISeries>
-            {
-                new ScatterSeries<WeightedPoint> { Values = observableValues, GeometrySize = 50 }
-            };
+          
         }
 
         private void Nidaq_DataReceived(object? sender, List<Models.AnalogChannel> e)
@@ -52,6 +45,32 @@ namespace BalanceAval.ViewModels
             }
 
             Update(e);
+
+            //litesql to store temporary data!
+        }
+
+        public ICommand Save => new Command(WriteToFile);
+
+        //private List<CsvRow> ToData(List<Models.AnalogChannel> data)
+        //{
+
+        //}
+
+        public async void WriteToFile(object window)
+        {
+            var dlg = new SaveFileDialog();
+            dlg.Filters.Add(new FileDialogFilter() { Name = "csv", Extensions = { "csv" } });
+
+            string? result = await dlg.ShowAsync((Window)window);
+
+            if (result != null)
+            {
+                using (var writer = new StreamWriter(result))
+                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+                {
+                    csv.WriteRecords(new List<CsvRow>());
+                }
+            }
         }
 
         public ObservableCollection<ICartesianViewModel> CartesianViewModels { get; set; }
@@ -60,10 +79,6 @@ namespace BalanceAval.ViewModels
         public ICommand Stop => new Command(o => _nidaq.Stop());
 
 
-        private ObservableCollection<WeightedPoint> observableValues;
-
-
-        public ObservableCollection<ISeries> Series { get; set; }
         public void Update(List<Models.AnalogChannel> data)
         {
             var dat = data.ToArray();
@@ -74,21 +89,11 @@ namespace BalanceAval.ViewModels
             var fx23 = data[1].Values[0] + data[2].Values[0];
             var fx = fx12 + fx34;
             var fy = fx14 + fx23;
-
-            RemoveFirstItem();
-            Add(fx, fy);
         }
 
-        private void Add(double x, double y)
-        {
-            observableValues.Add(new WeightedPoint(x, y, 1));
-        }
 
-        private void RemoveFirstItem()
-        {
-            if (observableValues.Count < 1) return;
-            observableValues.RemoveAt(0);
-        }
 
+      
+        
     }
 }

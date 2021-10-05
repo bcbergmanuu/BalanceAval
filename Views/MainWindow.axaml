@@ -29,6 +29,7 @@
 		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
 			<Button  Command="{Binding Start}">Start</Button>
 			<Button Command="{Binding Stop}">Stop</Button>
+			<Button Command="{Binding Save}"></Button>
 		</StackPanel>
 
 		<ScrollViewer Grid.Row="1" Grid.Column="0">
@@ -53,8 +54,7 @@
 		</ScrollViewer>
 
 
-		<lvc:CartesianChart Grid.Row="1" Grid.Column="1" Height="370" Width="370" Series="{Binding Series}" VerticalAlignment="Top" />
-
+		
 
     </Grid>
 
