@@ -3,7 +3,7 @@
         xmlns:vm="using:BalanceAval.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" Height="785" Width="1025"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="BalanceAval.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
@@ -16,30 +16,46 @@
 	<Grid>
 
 		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto" />
-			<RowDefinition Height="Auto" />
-
+			<RowDefinition Height="30" />
+			<RowDefinition Height="750" />
 
 		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="610" />
+			<ColumnDefinition Width="410" />
+		</Grid.ColumnDefinitions>
 
 
 		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-			<Button Margin="6" Command="{Binding Start}">Start</Button>
-			<Button Margin="6" Command="{Binding Stop}">Stop</Button>
+			<Button  Command="{Binding Start}">Start</Button>
+			<Button Command="{Binding Stop}">Stop</Button>
 		</StackPanel>
-		<ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" HorizontalAlignment="Left">
-			<ItemsControl  Items="{Binding CartesianViewModels }">
+
+		<ScrollViewer Grid.Row="1" Grid.Column="0">
+			<ItemsControl Items="{Binding CartesianViewModels }" >
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<StackPanel Orientation="Vertical" HorizontalAlignment="Left"/>
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<StackPanel Orientation="Vertical">
-							<TextBlock Text="{Binding Name}"></TextBlock>
-							<lvc:CartesianChart Series="{Binding Series}" Height="200" Width="600"></lvc:CartesianChart>
-						</StackPanel>
 
+						<lvc:CartesianChart Height="200" Width="600"
+											Series="{Binding Series}"
+											DrawMarginFrame="{Binding DrawMarginFrame}"
+											YAxes="{Binding YAxes}"
+											XAxes="{Binding XAxes}">
+						</lvc:CartesianChart>
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
-	</Grid>
+
+
+		<lvc:CartesianChart Grid.Row="1" Grid.Column="1" Height="370" Width="370" Series="{Binding Series}" VerticalAlignment="Top" />
+
+
+    </Grid>
 
 </Window>

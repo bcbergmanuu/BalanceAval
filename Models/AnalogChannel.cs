@@ -8,10 +8,9 @@ namespace BalanceAval.Models
 {
     public class AnalogChannel
     {
-        
+        public string Name { get; set; }
+        public List<double> Values { get; set; }
 
-            public string Name { get; set; }
-            public List<double> Values { get; set; }
         
     }
 }

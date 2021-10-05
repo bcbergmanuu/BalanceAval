@@ -16,10 +16,10 @@ namespace BalanceAval.Service
 
         private NationalInstruments.DAQmx.Task myTask;
 
-        private const int Buffersize = 50;
-        private const double Frequency = 100;
+        public const int Buffersize = 50;
+        public const double Frequency = 100;
 
-        public static readonly string[] ChannelNames = { "Dev1/ai0", "Dev1/ai1", "Dev1/ai2", "Dev1/ai3" };
+        public static readonly string[] ChannelNames = { "Dev1/ai1", "Dev1/ai2", "Dev1/ai3", "Dev1/ai4", };
 
         public void Start()
         {
@@ -76,6 +76,7 @@ namespace BalanceAval.Service
             }
             catch (NationalInstruments.DAQmx.DaqException exception)
             {
+                //should contain logging
                 return;
             }
             // Read the available data from the channels
