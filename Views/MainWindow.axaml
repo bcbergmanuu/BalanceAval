@@ -3,7 +3,7 @@
         xmlns:vm="using:BalanceAval.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" Height="785" Width="1025"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" Height="805" Width="1025"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="BalanceAval.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
@@ -17,7 +17,7 @@
 
 		<Grid.RowDefinitions>
 			<RowDefinition Height="30" />
-			<RowDefinition Height="750" />
+			<RowDefinition Height="770" />
 
 		</Grid.RowDefinitions>
 		<Grid.ColumnDefinitions>
@@ -52,10 +52,19 @@
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
+		<ScrollViewer Grid.Row="1" Grid.Column="1">
+			<ItemsControl Items="{Binding Slots}">
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<TextBlock Text="{Binding Time}"></TextBlock>
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</ScrollViewer>
 
 
-		
 
-    </Grid>
+
+	</Grid>
 
 </Window>
