@@ -27,10 +27,9 @@
 
 
 		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
-			<Button  Command="{Binding Start}">Start</Button>
-			<Button Command="{Binding Stop}">Stop</Button>
-			<Button Command="{Binding Save}"></Button>
-		</StackPanel>
+			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
+			<Button Command="{Binding Stop}" IsEnabled="{Binding !StartEnabled}">Stop</Button>
+        </StackPanel>
 
 		<ScrollViewer Grid.Row="1" Grid.Column="0">
 			<ItemsControl Items="{Binding CartesianViewModels }" >
@@ -54,9 +53,18 @@
 		</ScrollViewer>
 		<ScrollViewer Grid.Row="1" Grid.Column="1">
 			<ItemsControl Items="{Binding Slots}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Vertical" HorizontalAlignment="Left"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<TextBlock Text="{Binding Time}"></TextBlock>
+						<StackPanel Orientation="Vertical">
+                            <TextBlock Text="{Binding Time}"></TextBlock>
+							<Button Command="{Binding Save}">Save</Button>
+						</StackPanel>
+
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>

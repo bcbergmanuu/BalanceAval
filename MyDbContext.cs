@@ -25,6 +25,7 @@ namespace BalanceAval
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
+
                 //entity.HasIndex(e => e.Title).IsUnique();
                 //entity.Property(e => e.DateTimeAdd).HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
@@ -37,6 +38,10 @@ namespace BalanceAval
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
                 entity.Property(e => e.Time).HasDefaultValueSql("CURRENT_TIMESTAMP").ValueGeneratedOnAdd();
             });
+            modelBuilder.Entity<MeasurementSlot>()
+                .HasMany<MeasurementRow>(slot => slot.MeasurementRows)
+                .WithOne(tr => tr.MeasurementSlot).IsRequired();
+
             base.OnModelCreating(modelBuilder);
         }
     }

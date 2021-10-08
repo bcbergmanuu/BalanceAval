@@ -1,23 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Globalization;
-using System.IO;
+using System.ComponentModel;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Avalonia.Controls;
 using Avalonia.Threading;
 using BalanceAval.Models;
 using BalanceAval.Service;
-using CsvHelper;
 using CsvHelper.Configuration;
 using LiveChartsCore;
 using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Avalonia;
 using NationalInstruments.Restricted;
+using ReactiveUI;
 using SkiaSharp;
 using Stateless;
 using Stateless.Graph;
@@ -29,14 +28,16 @@ namespace BalanceAval.ViewModels
         private readonly IReadNidaq _nidaq;
         public MainWindowViewModel(IReadNidaq nidaq)
         {
+            ConfigureStateMachine();
             _nidaq = nidaq;
             CartesianViewModels = new ObservableCollection<ICartesianViewModel>();
-            Slots = new ObservableCollection<MeasurementSlot>();
+            Slots = new ObservableCollection<MeasurementSlotVM>();
 
             foreach (var channelName in ReadNidaq.ChannelNames)
             {
                 CartesianViewModels.Add(new CartesianViewModel(channelName, ReadNidaq.ChannelNames.IndexOf(channelName)));
             }
+
             //=> Nidaq_DataReceived
             nidaq.DataReceived += NidaqOnDataReceived;
 
@@ -44,22 +45,42 @@ namespace BalanceAval.ViewModels
 
         }
 
-        private void InitializeStateMachine()
+        private enum NidaqTriggers
         {
-            //var phoneCall = new StateMachine<State, Trigger>(State.OffHook);
-
-            //phoneCall.Configure(State.OffHook)
-            //    .Permit(Trigger.CallDialled, State.Ringing);
-
-            //phoneCall.Configure(State.Connected)
-            //    .OnEntry(t => StartCallTimer())
-            //    .OnExit(t => StopCallTimer())
-            //    .InternalTransition(Trigger.MuteMicrophone, t => OnMute())
-            //    .InternalTransition(Trigger.UnmuteMicrophone, t => OnUnmute())
-            //    .InternalTransition<int>(_setVolumeTrigger, (volume, t) => OnSetVolume(volume))
-            //    .Permit(Trigger.LeftMessage, State.OffHook)
-            //    .Permit(Trigger.PlacedOnHold, State.OnHold);
+            Start,
+            Stop,
+            Error,
         }
+        public enum NidaqStates
+        {
+            Running,
+            Stopped,
+        }
+
+        private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new StateMachine<NidaqStates, NidaqTriggers>(NidaqStates.Stopped);
+
+        private void ConfigureStateMachine()
+        {
+
+            _stateMachine.Configure(NidaqStates.Running).OnEntry(() =>
+                {
+                    StartEnabled = false;
+                    StartSlot();
+                    _nidaq.Start();
+                })
+                .Permit(NidaqTriggers.Stop, NidaqStates.Stopped)
+                .Permit(NidaqTriggers.Error, NidaqStates.Stopped);
+
+            _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
+                {
+                    DisplayLastSlot();
+                    StartEnabled = true;
+                    _nidaq.Stop();
+
+                })
+                .Permit(NidaqTriggers.Start, NidaqStates.Running);
+        }
+
 
         private void NidaqOnDataReceived(object? sender, List<AnalogChannel> e)
         {
@@ -81,6 +102,12 @@ namespace BalanceAval.ViewModels
             }
         }
 
+        private bool _startEnabled = true;
+        public bool StartEnabled
+        {
+            get => _startEnabled;
+            set => this.RaiseAndSetIfChanged(ref _startEnabled, value);
+        }
 
 
         private static List<MeasurementRow> ToDataRows(List<AnalogChannel> data)
@@ -111,60 +138,62 @@ namespace BalanceAval.ViewModels
             return rows;
         }
 
-        private void StoreDatabase(IList<MeasurementRow> data)
+
+
+        private void DisplayLastSlot()
         {
             using var dbContext = new MyDbContext();
             //Ensure database is created
+            var slot = dbContext.MeasurementSlots.OrderByDescending(i => i.Id).First();
+            Slots.Insert(0, new MeasurementSlotVM(slot));
+        }
+
+        private void StartSlot()
+        {
+            using var dbContext = new MyDbContext();
+
             dbContext.Database.EnsureCreated();
             dbContext.MeasurementSlots.Add(new MeasurementSlot());
             dbContext.SaveChanges();
-            var lastentry = dbContext.MeasurementSlots.OrderByDescending(s => s.Time).Last();
-            Slots.Insert(0,lastentry);
+        }
 
-            foreach (var row in data)
+        private void StoreDatabase(IEnumerable<MeasurementRow> data)
+        {
+            using var dbContext = new MyDbContext();
+            var current = dbContext.MeasurementSlots.OrderByDescending(i => i.Id).First();
+            var attachedSlot = data.Select(s =>
             {
-                row.Measurement = lastentry.Id;
-            }
-
-            dbContext.MeasurementRows.AddRange(data);
+                s.MeasurementSlot = current;
+                return s;
+            }).ToList();
+            dbContext.MeasurementRows.AddRange(attachedSlot);
             dbContext.SaveChanges();
         }
 
         private void FillSlots()
         {
             using var dbContext = new MyDbContext();
-            Slots.AddRange(dbContext.MeasurementSlots.OrderByDescending(i => i.Id));
+            dbContext.Database.EnsureCreated();
+            Slots.AddRange(dbContext.MeasurementSlots.OrderByDescending(i => i.Id).Select(n => new MeasurementSlotVM(n)));
         }
 
-        public ObservableCollection<MeasurementSlot> Slots { get; set; }
+        public ObservableCollection<MeasurementSlotVM> Slots { get; set; }
 
-        public ICommand Save => new Command(WriteToFile);
-
-
-        public async void WriteToFile(object window)
-        {
-            var dlg = new SaveFileDialog();
-            dlg.Filters.Add(new FileDialogFilter() { Name = "csv", Extensions = { "csv" } });
-
-            string? result = await dlg.ShowAsync((Window)window);
-
-            if (result != null)
-            {
-                using (var writer = new StreamWriter(result))
-                using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
-                {
-                    using var dbContext = new MyDbContext();
-                    csv.WriteRecords(dbContext.MeasurementRows);
-                }
-            }
-        }
 
         public ObservableCollection<ICartesianViewModel> CartesianViewModels { get; set; }
 
-        public ICommand Start => new Command(o => _nidaq.Start());
-        public ICommand Stop => new Command(o => _nidaq.Stop());
+        private void StartMeasure(object o)
+        {
+            _stateMachine.Fire(NidaqTriggers.Start);
+        }
 
+        private void StopMeasure(object o)
+        {
+            _stateMachine.Fire(NidaqTriggers.Stop);
+        }
 
+        public ICommand Start => new Command(StartMeasure);
+        public ICommand Stop => new Command(StopMeasure);
 
         public void Update(List<Models.AnalogChannel> data)
         {

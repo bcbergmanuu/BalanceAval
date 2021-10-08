@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace BalanceAval.Models
@@ -16,7 +17,7 @@ namespace BalanceAval.Models
         [Required]
         public double X4 { get; set; }
         [Required]
-        public int Measurement { get; set; }
+        public MeasurementSlot MeasurementSlot { get; set; }
     }
 
     public class MeasurementSlot
@@ -25,5 +26,8 @@ namespace BalanceAval.Models
         public int Id { get; set; }
         [Required]
         public DateTime Time { get; set; }
+
+        [Required]
+        public ICollection<MeasurementRow> MeasurementRows { get; set; }
     }
 }
