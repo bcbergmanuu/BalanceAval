@@ -1,25 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Reactive.Concurrency;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia.Threading;
 using BalanceAval.Models;
 using BalanceAval.Service;
-using CsvHelper.Configuration;
-using LiveChartsCore;
-using LiveChartsCore.Defaults;
-using LiveChartsCore.SkiaSharpView;
-using LiveChartsCore.SkiaSharpView.Avalonia;
 using NationalInstruments.Restricted;
 using ReactiveUI;
-using SkiaSharp;
 using Stateless;
-using Stateless.Graph;
 
 namespace BalanceAval.ViewModels
 {
@@ -28,8 +19,10 @@ namespace BalanceAval.ViewModels
         private readonly IReadNidaq _nidaq;
         public MainWindowViewModel(IReadNidaq nidaq)
         {
+            Errors = new ObservableCollection<ErrorModel>();
             ConfigureStateMachine();
             _nidaq = nidaq;
+
             CartesianViewModels = new ObservableCollection<ICartesianViewModel>();
             Slots = new ObservableCollection<MeasurementSlotVM>();
 
@@ -37,24 +30,34 @@ namespace BalanceAval.ViewModels
             {
                 CartesianViewModels.Add(new CartesianViewModel(channelName, ReadNidaq.ChannelNames.IndexOf(channelName)));
             }
-
-            //=> Nidaq_DataReceived
+            nidaq.Error += NidaqOnError;
             nidaq.DataReceived += NidaqOnDataReceived;
-
             FillSlots();
-
         }
+
+        private void NidaqOnError(object? sender, string e)
+        {
+            Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _stateMachine.Fire(NidaqTriggers.Error);
+                Errors.Insert(0, new ErrorModel() { Message = e });
+            });
+        }
+
+        public static ObservableCollection<ErrorModel> Errors { get; set; }
 
         private enum NidaqTriggers
         {
             Start,
             Stop,
             Error,
+            DelayFinished,
         }
         public enum NidaqStates
         {
             Running,
             Stopped,
+            TimeOut,
         }
 
         private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new StateMachine<NidaqStates, NidaqTriggers>(NidaqStates.Stopped);
@@ -64,21 +67,32 @@ namespace BalanceAval.ViewModels
 
             _stateMachine.Configure(NidaqStates.Running).OnEntry(() =>
                 {
+                    Errors.Clear();
                     StartEnabled = false;
+                    StopEnabled = true;
                     StartSlot();
                     _nidaq.Start();
                 })
-                .Permit(NidaqTriggers.Stop, NidaqStates.Stopped)
-                .Permit(NidaqTriggers.Error, NidaqStates.Stopped);
+                .Permit(NidaqTriggers.Stop, NidaqStates.TimeOut)
+                .Permit(NidaqTriggers.Error, NidaqStates.TimeOut);
 
             _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
                 {
-                    DisplayLastSlot();
                     StartEnabled = true;
-                    _nidaq.Stop();
-
                 })
                 .Permit(NidaqTriggers.Start, NidaqStates.Running);
+            _stateMachine.Configure(NidaqStates.TimeOut).OnEntry(() =>
+            {
+                StopEnabled = false;
+                _nidaq.Stop();
+                DisplayLastSlot();
+                Task.Run(async delegate
+                {
+                    await Task.Delay(5000);
+                    _stateMachine.Fire(NidaqTriggers.DelayFinished);
+                });
+
+            }).Permit(NidaqTriggers.DelayFinished, NidaqStates.Stopped);
         }
 
 
@@ -87,14 +101,14 @@ namespace BalanceAval.ViewModels
             Dispatcher.UIThread.InvokeAsync(() => Nidaq_DataReceived(e));
         }
 
-        private void Nidaq_DataReceived(List<Models.AnalogChannel> e)
+        private void Nidaq_DataReceived(List<AnalogChannel> e)
         {
             UpdateCartesians(e);
             var rows = ToDataRows(e);
             StoreDatabase(rows);
         }
 
-        private void UpdateCartesians(List<AnalogChannel> e)
+        private void UpdateCartesians(IReadOnlyList<AnalogChannel> e)
         {
             foreach (var cartesianViewModel in CartesianViewModels)
             {
@@ -103,26 +117,24 @@ namespace BalanceAval.ViewModels
         }
 
         private bool _startEnabled = true;
+        private bool _stopEnabled;
+
+        public bool StopEnabled
+        {
+            get => _stopEnabled;
+            set => this.RaiseAndSetIfChanged(ref _stopEnabled, value);
+        }
+
         public bool StartEnabled
         {
             get => _startEnabled;
             set => this.RaiseAndSetIfChanged(ref _startEnabled, value);
         }
 
-
-        private static List<MeasurementRow> ToDataRows(List<AnalogChannel> data)
+        private static IEnumerable<MeasurementRow> ToDataRows(IEnumerable<AnalogChannel> data)
         {
-            var contents = new List<List<double>>();
             var rows = new List<MeasurementRow>();
-            foreach (var channel in data)
-            {
-                var lst = new List<double>();
-                foreach (var value in channel.Values)
-                {
-                    lst.Add(value);
-                }
-                contents.Add(lst);
-            }
+            var contents = data.Select(channel => channel.Values.ToList()).ToList();
 
             for (var i = 0; i < contents[0].Count; i++)
             {
@@ -138,28 +150,27 @@ namespace BalanceAval.ViewModels
             return rows;
         }
 
-
-
-        private void DisplayLastSlot()
+        private async void DisplayLastSlot()
         {
-            using var dbContext = new MyDbContext();
+            await using var dbContext = new MyDbContext();
             //Ensure database is created
-            var slot = dbContext.MeasurementSlots.OrderByDescending(i => i.Id).First();
-            Slots.Insert(0, new MeasurementSlotVM(slot));
+            var slot = Slots.First();
+            slot.IsBusy = false;
         }
 
-        private void StartSlot()
+        private async void StartSlot()
         {
-            using var dbContext = new MyDbContext();
-
-            dbContext.Database.EnsureCreated();
-            dbContext.MeasurementSlots.Add(new MeasurementSlot());
-            dbContext.SaveChanges();
+            await using var dbContext = new MyDbContext();
+            var slot = new MeasurementSlot();
+            await dbContext.Database.EnsureCreatedAsync();
+            dbContext.MeasurementSlots.Add(slot);
+            await dbContext.SaveChangesAsync();
+            Slots.Insert(0, new MeasurementSlotVM(slot) { IsBusy = true });
         }
 
-        private void StoreDatabase(IEnumerable<MeasurementRow> data)
+        private static async void StoreDatabase(IEnumerable<MeasurementRow> data)
         {
-            using var dbContext = new MyDbContext();
+            await using var dbContext = new MyDbContext();
             var current = dbContext.MeasurementSlots.OrderByDescending(i => i.Id).First();
             var attachedSlot = data.Select(s =>
             {
@@ -167,14 +178,15 @@ namespace BalanceAval.ViewModels
                 return s;
             }).ToList();
             dbContext.MeasurementRows.AddRange(attachedSlot);
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync();
         }
 
-        private void FillSlots()
+        private async void FillSlots()
         {
-            using var dbContext = new MyDbContext();
-            dbContext.Database.EnsureCreated();
-            Slots.AddRange(dbContext.MeasurementSlots.OrderByDescending(i => i.Id).Select(n => new MeasurementSlotVM(n)));
+            await using var dbContext = new MyDbContext();
+            await dbContext.Database.EnsureCreatedAsync();
+            var slots = dbContext.MeasurementSlots.OrderByDescending(i => i.Id).Select(n => new MeasurementSlotVM(n));
+            Slots.AddRange(slots);
         }
 
         public ObservableCollection<MeasurementSlotVM> Slots { get; set; }
@@ -194,6 +206,19 @@ namespace BalanceAval.ViewModels
 
         public ICommand Start => new Command(StartMeasure);
         public ICommand Stop => new Command(StopMeasure);
+
+        public ICommand Browse
+        {
+            get
+            {
+                return new Command(((d) =>
+                {
+                    Process.Start(Program.UserPath);
+                }));
+            }
+        }
+
+        public string Folder => Program.UserPath;
 
         public void Update(List<Models.AnalogChannel> data)
         {

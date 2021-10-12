@@ -8,7 +8,9 @@ namespace BalanceAval.Service
     {
 
         public event EventHandler<List<AnalogChannel>> DataReceived;
-        void Start();
-        void Stop();
+        public void Start();
+        public void Stop();
+
+        public event EventHandler<string> Error;
     }
 }

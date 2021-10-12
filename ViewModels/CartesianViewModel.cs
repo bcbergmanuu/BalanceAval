@@ -40,7 +40,7 @@ namespace BalanceAval.ViewModels
                 new Axis // the "units" and "tens" series will be scaled on this axis
                 {
                     LabelsPaint = new SolidColorPaint(new SKColor(25, 118, 210)),
-                    Labeler = d => (d * 25.00).ToString("N") + "kg",
+                    Labeler = d => (d * ReadNidaq.MultiplicationFactor).ToString("N") + "kg",
                     TextSize = 10,
                     NameTextSize = 10,
                 }

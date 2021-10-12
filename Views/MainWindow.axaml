@@ -3,33 +3,49 @@
         xmlns:vm="using:BalanceAval.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" Height="805" Width="1025"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" 
+		SizeToContent="WidthAndHeight"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="BalanceAval.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
         Title="BalanceAval">
 
 	<Design.DataContext>
-		<vm:MainWindowViewModel/>
+		<vm:DesignMVM/>
 	</Design.DataContext>
 
 	<Grid>
 
 		<Grid.RowDefinitions>
-			<RowDefinition Height="30" />
-			<RowDefinition Height="770" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition  />
 
 		</Grid.RowDefinitions>
 		<Grid.ColumnDefinitions>
-			<ColumnDefinition Width="610" />
-			<ColumnDefinition Width="410" />
+			<ColumnDefinition Width="Auto" />
+			<ColumnDefinition Width="Auto" />
 		</Grid.ColumnDefinitions>
 
 
 		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
 			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
-			<Button Command="{Binding Stop}" IsEnabled="{Binding !StartEnabled}">Stop</Button>
-        </StackPanel>
+			<Button Command="{Binding Stop}" IsEnabled="{Binding StopEnabled}">Stop</Button>
+
+			<ItemsControl Items="{x:Static vm:MainWindowViewModel.Errors}" >
+				<ItemsControl.ItemsPanel>
+					<ItemsPanelTemplate>
+						<StackPanel Orientation="Vertical" />
+					</ItemsPanelTemplate>
+				</ItemsControl.ItemsPanel>
+				<ItemsControl.ItemTemplate>
+					<DataTemplate>
+						<TextBox IsReadOnly="True" Margin="10" AcceptsReturn="True" 
+                                 TextWrapping="Wrap" AcceptsTab="True" Text="{Binding Message}" Foreground="#FF0000"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" MaxWidth="500" />
+					</DataTemplate>
+				</ItemsControl.ItemTemplate>
+			</ItemsControl>
+		</StackPanel>
 
 		<ScrollViewer Grid.Row="1" Grid.Column="0">
 			<ItemsControl Items="{Binding CartesianViewModels }" >
@@ -40,35 +56,42 @@
 				</ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-
 						<lvc:CartesianChart Height="200" Width="600"
-											Series="{Binding Series}"
-											DrawMarginFrame="{Binding DrawMarginFrame}"
-											YAxes="{Binding YAxes}"
-											XAxes="{Binding XAxes}">
+                                            Series="{Binding Series}"
+                                            DrawMarginFrame="{Binding DrawMarginFrame}"
+                                            YAxes="{Binding YAxes}"
+                                            XAxes="{Binding XAxes}">
 						</lvc:CartesianChart>
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
-		<ScrollViewer Grid.Row="1" Grid.Column="1">
-			<ItemsControl Items="{Binding Slots}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Vertical" HorizontalAlignment="Left"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-				<ItemsControl.ItemTemplate>
-					<DataTemplate>
-						<StackPanel Orientation="Vertical">
-                            <TextBlock Text="{Binding Time}"></TextBlock>
-							<Button Command="{Binding Save}">Save</Button>
-						</StackPanel>
+		<ScrollViewer Grid.Row="1" Grid.Column="1" MaxHeight="600">
+			<StackPanel Orientation="Vertical">
+				<StackPanel Orientation="Horizontal">
+					<Button Command="{Binding Browse}">Browse</Button>
+					<TextBlock Text="{Binding Folder}" Margin="8,0,0,0"></TextBlock>
+				</StackPanel>
 
-					</DataTemplate>
-				</ItemsControl.ItemTemplate>
-			</ItemsControl>
+				<ItemsControl Items="{Binding Slots}" >
+					<ItemsControl.ItemsPanel>	
+						<ItemsPanelTemplate>
+							<StackPanel Orientation="Vertical" HorizontalAlignment="Left"/>
+						</ItemsPanelTemplate>
+					</ItemsControl.ItemsPanel>
+					<ItemsControl.ItemTemplate>
+						<DataTemplate>
+							<StackPanel Orientation="Horizontal">
+								<Button Command="{Binding Save}" IsEnabled="{Binding !IsBusy}">Save</Button>
+								<TextBlock Margin="10,0,0,0" Text="{Binding Time}"></TextBlock>
+							</StackPanel>
+
+						</DataTemplate>
+					</ItemsControl.ItemTemplate>
+				</ItemsControl>
+			</StackPanel>
 		</ScrollViewer>
+
 
 
 

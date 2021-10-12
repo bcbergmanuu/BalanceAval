@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
+using Avalonia.Controls.Platform;
 using BalanceAval.Models;
 using NationalInstruments;
 using NationalInstruments.DAQmx;
@@ -12,71 +14,110 @@ namespace BalanceAval.Service
 {
     public class ReadNidaq : IReadNidaq
     {
-        private AnalogMultiChannelReader analogInReader;
+        //private AnalogMultiChannelReader analogInReader;
 
-        private NationalInstruments.DAQmx.Task myTask;
+        //private NationalInstruments.DAQmx.Task myTask;
 
+        public const double MultiplicationFactor = 25.00;
         public const int Buffersize = 50;
         public const double Frequency = 100;
 
         public static readonly string[] ChannelNames = { "Dev1/ai1", "Dev1/ai2", "Dev1/ai3", "Dev1/ai4", };
 
-        public void Start()
+        private NationalInstruments.DAQmx.Task running;
+        private AnalogMultiChannelReader analogInReader;
+        public async void Start()
         {
-            if(myTask != null)
-                myTask.Dispose();
-
             // Create a new task
-            myTask = new NationalInstruments.DAQmx.Task();
-
-            // Create a virtual channel
-
-            foreach (var channel in ChannelNames)
+            try
             {
-                myTask.AIChannels.CreateVoltageChannel(channel, "",
-                    (AITerminalConfiguration)(-1), 0.0, 10.0, AIVoltageUnits.Volts);
+                running = await CreateNidaqTask();
+
+
+                analogInReader = new AnalogMultiChannelReader(running.Stream)
+                {
+                    // marshals callbacks across threads appropriately.
+                    // Use SynchronizeCallbacks to specify that the object 
+                    SynchronizeCallbacks = true
+                };
+
+
+                analogInReader.BeginReadWaveform(Buffersize, AnalogInCallback, running);
+                running.Timing.ConfigureSampleClock("", Frequency, SampleClockActiveEdge.Rising,
+                    SampleQuantityMode.ContinuousSamples, Buffersize);
+
+                // Verify the Task
+
+
+                running.Control(TaskAction.Verify);
             }
+            catch (DaqException e)
+            {
+                OnError(e.Message);
+            }
+        }
 
-            // Configure the timing parameters
-            myTask.Timing.ConfigureSampleClock("", Frequency,
-                SampleClockActiveEdge.Rising, SampleQuantityMode.ContinuousSamples, Buffersize);
+        private static Task<NationalInstruments.DAQmx.Task> CreateNidaqTask()
+        {
+            var tcs = new TaskCompletionSource<NationalInstruments.DAQmx.Task>();
 
-            //myTask.ConfigureLogging(System.Windows.Application.Current.StartupUri + @"logfiles-wpf.txt", TdmsLoggingOperation.CreateOrReplace, LoggingMode.LogAndRead, "Group Name");
+            Task.Factory.StartNew(() =>
+                {
+                    NationalInstruments.DAQmx.Task nidaqtask;
+                    try
+                    {
+                        nidaqtask = new NationalInstruments.DAQmx.Task();
 
-            // Verify the Task
-            myTask.Control(TaskAction.Verify);
+                        // Create a virtual channel
+                        foreach (var channel in ChannelNames)
+                        {
+                            nidaqtask.AIChannels.CreateVoltageChannel(channel, "", (AITerminalConfiguration)(-1), 0.0,
+                                10.0, AIVoltageUnits.Volts);
+                        }
+                    }
 
-            analogInReader = new AnalogMultiChannelReader(myTask.Stream);
+                    catch (DaqException e)
+                    {
+                        tcs.SetException(e); return;
+                    }
+                    // Configure the timing parameters
 
-            // Use SynchronizeCallbacks to specify that the object 
-            // marshals callbacks across threads appropriately.
-            analogInReader.SynchronizeCallbacks = true;
-            analogInReader.BeginReadWaveform(Buffersize, AnalogInCallback, myTask);
+                    tcs.SetResult(nidaqtask);
+                });
+
+            return tcs.Task;
         }
 
         public void Stop()
         {
-            myTask.Stop();
-  
+            try
+            {
+                running.Stop();
+            }
+            catch 
+            {
+                //suppress this
+            }
+            
         }
 
+        public event EventHandler<string> Error;
+
         public event EventHandler<List<AnalogChannel>> DataReceived;
-
-
 
         private void AnalogInCallback(IAsyncResult ar)
         {
             AnalogWaveform<double>[]? data;
-            
-            if (myTask.IsDone)
-                return;
+
             try
             {
+                if (running.IsDone)
+                    return;
                 data = analogInReader.EndReadWaveform(ar);
             }
             catch (NationalInstruments.DAQmx.DaqException exception)
             {
-                //should contain logging
+                OnError(exception.Message);
                 return;
             }
             // Read the available data from the channels
@@ -85,7 +126,7 @@ namespace BalanceAval.Service
             OnDataReceived(model);
 
             analogInReader.BeginMemoryOptimizedReadWaveform(Buffersize,
-                AnalogInCallback, myTask, data);
+                AnalogInCallback, running, data);
         }
 
         private static List<AnalogChannel> SamplesToModel(IEnumerable<AnalogWaveform<double>> samples)
@@ -110,24 +151,14 @@ namespace BalanceAval.Service
             return channels;
         }
 
-
-
-        //private static void Printsamples(IEnumerable<AnalogWaveform<double>> samples)
-        //{
-        //    foreach (var channel in samples)
-        //    {
-        //        Debug.WriteLine(channel.ChannelName);
-
-        //        foreach (var analogWaveformSample in channel.Samples)
-        //        {
-        //            Debug.WriteLine(analogWaveformSample.Value.ToString("N"));
-        //        }
-        //    }
-        //}
-
         protected virtual void OnDataReceived(List<AnalogChannel> e)
         {
             DataReceived?.Invoke(this, e);
+        }
+
+        protected virtual void OnError(string e)
+        {
+            Error?.Invoke(this, e);
         }
     }
 }
