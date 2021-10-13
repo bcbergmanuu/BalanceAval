@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Drawing;
 using System.Windows.Input;
 using BalanceAval.Models;
 using BalanceAval.Service;
 using CsvHelper.Configuration;
+using Point = Avalonia.Point;
 
 namespace BalanceAval.ViewModels
 {
@@ -32,8 +35,10 @@ namespace BalanceAval.ViewModels
             get;
             set;
         }
-
+        
         public bool StopEnabled { get; set; }
+
+
 
     }
 

@@ -29,6 +29,6 @@ namespace BalanceAval
             }
             base.OnFrameworkInitializationCompleted();
         }
-        private static T GetRequiredService<T>() => Locator.Current.GetRequiredService<T>();
+        static T GetRequiredService<T>() => Locator.Current.GetRequiredService<T>();
     }
 }

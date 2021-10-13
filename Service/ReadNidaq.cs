@@ -61,7 +61,7 @@ namespace BalanceAval.Service
         {
             var tcs = new TaskCompletionSource<NationalInstruments.DAQmx.Task>();
 
-            Task.Factory.StartNew(() =>
+            var t = Task.Run(() =>
                 {
                     NationalInstruments.DAQmx.Task nidaqtask;
                     try

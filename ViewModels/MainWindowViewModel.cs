@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using Avalonia;
+using Avalonia.Collections;
 using Avalonia.Threading;
 using BalanceAval.Models;
 using BalanceAval.Service;
@@ -20,6 +23,7 @@ namespace BalanceAval.ViewModels
         public MainWindowViewModel(IReadNidaq nidaq)
         {
             Errors = new ObservableCollection<ErrorModel>();
+            
             ConfigureStateMachine();
             _nidaq = nidaq;
 
@@ -106,6 +110,7 @@ namespace BalanceAval.ViewModels
             UpdateCartesians(e);
             var rows = ToDataRows(e);
             StoreDatabase(rows);
+            AddPoints(rows);
         }
 
         private void UpdateCartesians(IReadOnlyList<AnalogChannel> e)
@@ -118,6 +123,7 @@ namespace BalanceAval.ViewModels
 
         private bool _startEnabled = true;
         private bool _stopEnabled;
+        private Point _newPoint;
 
         public bool StopEnabled
         {
@@ -218,18 +224,25 @@ namespace BalanceAval.ViewModels
             }
         }
 
+
         public string Folder => Program.UserPath;
 
-        public void Update(List<Models.AnalogChannel> data)
+        public Point NewPoint
         {
-            var dat = data.ToArray();
+            get => _newPoint;
+            set => this.RaiseAndSetIfChanged(ref _newPoint, value);
+        }
 
-            var fx12 = data[0].Values[0] + data[1].Values[0];
-            var fx34 = data[2].Values[0] + data[3].Values[0];
-            var fx14 = data[0].Values[0] + data[3].Values[0];
-            var fx23 = data[1].Values[0] + data[2].Values[0];
-            var fx = fx12 + fx34;
-            var fy = fx14 + fx23;
+
+        private void AddPoints(IEnumerable<MeasurementRow> data)
+        {
+            NewPoint = (COP(data.First()));
+        }
+
+
+        public Point COP(MeasurementRow r)
+        {
+            return new Point((r.X4 + r.X2) - (r.X1 + r.X3) * 20, (r.X3 + r.X4) - (r.X1 + r.X2) * 40);
         }
     }
 }

@@ -3,22 +3,24 @@
         xmlns:vm="using:BalanceAval.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" 
-		SizeToContent="WidthAndHeight"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:views="clr-namespace:BalanceAval.Views"
+        SizeToContent="WidthAndHeight"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="BalanceAval.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
         Title="BalanceAval">
 
 	<Design.DataContext>
-		<vm:DesignMVM/>
+		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
 	<Grid>
 
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto" />
-			<RowDefinition  />
+			<RowDefinition Height="Auto" />
+			<RowDefinition />
 
 		</Grid.RowDefinitions>
 		<Grid.ColumnDefinitions>
@@ -39,7 +41,7 @@
 				</ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<TextBox IsReadOnly="True" Margin="10" AcceptsReturn="True" 
+						<TextBox IsReadOnly="True" Margin="10" AcceptsReturn="True"
                                  TextWrapping="Wrap" AcceptsTab="True" Text="{Binding Message}" Foreground="#FF0000"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled" MaxWidth="500" />
 					</DataTemplate>
@@ -47,7 +49,7 @@
 			</ItemsControl>
 		</StackPanel>
 
-		<ScrollViewer Grid.Row="1" Grid.Column="0">
+		<ScrollViewer Grid.Row="1" Grid.Column="0" Grid.RowSpan="2">
 			<ItemsControl Items="{Binding CartesianViewModels }" >
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -66,7 +68,7 @@
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
-		<ScrollViewer Grid.Row="1" Grid.Column="1" MaxHeight="600">
+		<ScrollViewer Grid.Row="1" Grid.Column="1" MaxHeight="400" VerticalAlignment="Top">
 			<StackPanel Orientation="Vertical">
 				<StackPanel Orientation="Horizontal">
 					<Button Command="{Binding Browse}">Browse</Button>
@@ -74,7 +76,7 @@
 				</StackPanel>
 
 				<ItemsControl Items="{Binding Slots}" >
-					<ItemsControl.ItemsPanel>	
+					<ItemsControl.ItemsPanel>
 						<ItemsPanelTemplate>
 							<StackPanel Orientation="Vertical" HorizontalAlignment="Left"/>
 						</ItemsPanelTemplate>
@@ -92,10 +94,28 @@
 			</StackPanel>
 		</ScrollViewer>
 
+        <Canvas Grid.Column="1" Grid.Row="2" Width="300" Height="300" Background="Yellow" >
 
-
-
-
-	</Grid>
+			<views:PolyLineCustom Points="0,0 3,3"
+                            Stroke="Black"
+                            StrokeThickness="1"
+                            Canvas.Top="150"
+                            Canvas.Left="150" NewPoint="{Binding NewPoint}">
+				
+            </views:PolyLineCustom>
+        </Canvas>
+		<!--<ItemsControl Grid.Row="1" Grid.Column="1" Items="{Binding LinePoints}">
+            <ItemsControl.ItemsPanel>
+				<ItemsPanelTemplate>
+                    <Canvas Width="100" Height="100" />
+				</ItemsPanelTemplate>
+			</ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Line StartPoint="{Binding}"></Line>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>-->
+    </Grid>
 
 </Window>
