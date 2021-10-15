@@ -94,28 +94,11 @@
 			</StackPanel>
 		</ScrollViewer>
 
-        <Canvas Grid.Column="1" Grid.Row="2" Width="300" Height="300" Background="Yellow" >
+		<views:CanvasCustom Grid.Column="1" Grid.Row="2" Width="300" Height="300" NewPoint="{Binding NewPoint}"  >
+			<Border Width="300" Height="300" BorderThickness="1" BorderBrush="Gray"></Border>
 
-			<views:PolyLineCustom Points="0,0 3,3"
-                            Stroke="Black"
-                            StrokeThickness="1"
-                            Canvas.Top="150"
-                            Canvas.Left="150" NewPoint="{Binding NewPoint}">
-				
-            </views:PolyLineCustom>
-        </Canvas>
-		<!--<ItemsControl Grid.Row="1" Grid.Column="1" Items="{Binding LinePoints}">
-            <ItemsControl.ItemsPanel>
-				<ItemsPanelTemplate>
-                    <Canvas Width="100" Height="100" />
-				</ItemsPanelTemplate>
-			</ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <Line StartPoint="{Binding}"></Line>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>-->
-    </Grid>
+		</views:CanvasCustom>
+
+	</Grid>
 
 </Window>

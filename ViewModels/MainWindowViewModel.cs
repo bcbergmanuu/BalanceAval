@@ -22,8 +22,9 @@ namespace BalanceAval.ViewModels
         private readonly IReadNidaq _nidaq;
         public MainWindowViewModel(IReadNidaq nidaq)
         {
-            Errors = new ObservableCollection<ErrorModel>();
             
+            Errors = new ObservableCollection<ErrorModel>();
+
             ConfigureStateMachine();
             _nidaq = nidaq;
 
@@ -83,6 +84,7 @@ namespace BalanceAval.ViewModels
             _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
                 {
                     StartEnabled = true;
+                    _nidaq.Stop();
                 })
                 .Permit(NidaqTriggers.Start, NidaqStates.Running);
             _stateMachine.Configure(NidaqStates.TimeOut).OnEntry(() =>
@@ -92,7 +94,7 @@ namespace BalanceAval.ViewModels
                 DisplayLastSlot();
                 Task.Run(async delegate
                 {
-                    await Task.Delay(5000);
+                    await Task.Delay(1000);
                     _stateMachine.Fire(NidaqTriggers.DelayFinished);
                 });
 
@@ -109,8 +111,9 @@ namespace BalanceAval.ViewModels
         {
             UpdateCartesians(e);
             var rows = ToDataRows(e);
-            StoreDatabase(rows);
-            AddPoints(rows);
+            var measurementRows = rows as MeasurementRow[] ?? rows.ToArray();
+            StoreDatabase(measurementRows);
+            AddPoints(measurementRows);
         }
 
         private void UpdateCartesians(IReadOnlyList<AnalogChannel> e)
@@ -123,7 +126,8 @@ namespace BalanceAval.ViewModels
 
         private bool _startEnabled = true;
         private bool _stopEnabled;
-        private Point _newPoint;
+        
+        private Point _newPoint1;
 
         public bool StopEnabled
         {
@@ -219,7 +223,14 @@ namespace BalanceAval.ViewModels
             {
                 return new Command(((d) =>
                 {
-                    Process.Start(Program.UserPath);
+                    try
+                    {
+                        Process.Start(Program.UserPath);
+                    }
+                    catch (Exception e)
+                    {
+                        Errors.Add(new ErrorModel() { Message = e.Message });
+                    }
                 }));
             }
         }
@@ -229,14 +240,14 @@ namespace BalanceAval.ViewModels
 
         public Point NewPoint
         {
-            get => _newPoint;
-            set => this.RaiseAndSetIfChanged(ref _newPoint, value);
+            get => _newPoint1;
+            set => this.RaiseAndSetIfChanged(ref _newPoint1, value);
         }
-
 
         private void AddPoints(IEnumerable<MeasurementRow> data)
         {
-            NewPoint = (COP(data.First()));
+            var point = COP(data.First());
+            NewPoint = point;
         }
 
 
@@ -245,4 +256,6 @@ namespace BalanceAval.ViewModels
             return new Point((r.X4 + r.X2) - (r.X1 + r.X3) * 20, (r.X3 + r.X4) - (r.X1 + r.X2) * 40);
         }
     }
+
+
 }

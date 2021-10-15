@@ -12,6 +12,11 @@ using Task = System.Threading.Tasks.Task;
 
 namespace BalanceAval.Service
 {
+    class ReadInstance
+    {
+
+    }
+
     public class ReadNidaq : IReadNidaq
     {
         //private AnalogMultiChannelReader analogInReader;
@@ -26,11 +31,15 @@ namespace BalanceAval.Service
 
         private NationalInstruments.DAQmx.Task running;
         private AnalogMultiChannelReader analogInReader;
+
+
+
         public async void Start()
         {
             // Create a new task
             try
             {
+                Stop();
                 running = await CreateNidaqTask();
 
 
@@ -61,32 +70,29 @@ namespace BalanceAval.Service
         {
             var tcs = new TaskCompletionSource<NationalInstruments.DAQmx.Task>();
 
-            var t = Task.Run(() =>
+            NationalInstruments.DAQmx.Task nidaqtask;
+            try
+            {
+                nidaqtask = new NationalInstruments.DAQmx.Task();
+
+                // Create a virtual channels
+                foreach (var channel in ChannelNames)
                 {
-                    NationalInstruments.DAQmx.Task nidaqtask;
-                    try
-                    {
-                        nidaqtask = new NationalInstruments.DAQmx.Task();
+                    nidaqtask.AIChannels.CreateVoltageChannel(channel, "", (AITerminalConfiguration)(-1), 0.0,
+                        10.0, AIVoltageUnits.Volts);
+                } 
+                tcs.SetResult(nidaqtask);
+            }
 
-                        // Create a virtual channel
-                        foreach (var channel in ChannelNames)
-                        {
-                            nidaqtask.AIChannels.CreateVoltageChannel(channel, "", (AITerminalConfiguration)(-1), 0.0,
-                                10.0, AIVoltageUnits.Volts);
-                        }
-                    }
-
-                    catch (DaqException e)
-                    {
-                        tcs.SetException(e); return;
-                    }
-                    // Configure the timing parameters
-
-                    tcs.SetResult(nidaqtask);
-                });
+            catch (DaqException e)
+            {
+                tcs.SetException(e);
+            }
 
             return tcs.Task;
         }
+
+
 
         public void Stop()
         {
@@ -94,11 +100,10 @@ namespace BalanceAval.Service
             {
                 running.Stop();
             }
-            catch 
+            catch
             {
                 //suppress this
             }
-            
         }
 
         public event EventHandler<string> Error;

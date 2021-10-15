@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Avalonia;
 
 namespace BalanceAval.Models
 {
@@ -13,5 +14,10 @@ namespace BalanceAval.Models
 
         [Required]
         public ICollection<MeasurementRow> MeasurementRows { get; set; }
+    }
+
+    public class Ellipse
+    {
+        public Point CenterPoint { get; set; }
     }
 }
