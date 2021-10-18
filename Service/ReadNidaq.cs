@@ -12,27 +12,34 @@ using Task = System.Threading.Tasks.Task;
 
 namespace BalanceAval.Service
 {
-    class ReadInstance
+    public readonly struct Channel
     {
-
+        public Channel(string niInput, string name)
+        {
+            NiInput = niInput;
+            Name = name;
+        }
+        public string NiInput { get; }
+        public string Name { get; }
     }
+
+
 
     public class ReadNidaq : IReadNidaq
     {
-        //private AnalogMultiChannelReader analogInReader;
-
-        //private NationalInstruments.DAQmx.Task myTask;
-
         public const double MultiplicationFactor = 25.00;
         public const int Buffersize = 50;
         public const double Frequency = 100;
 
-        public static readonly string[] ChannelNames = { "Dev1/ai1", "Dev1/ai2", "Dev1/ai3", "Dev1/ai4", };
-
+        public static readonly IList<Channel> ChannelNames;
+        public static readonly string[] ChannelValues = { "Z1", "Z4", "Z2", "Z3", "Y", "X2", "X1" }; //note these refer to object properties also
         private NationalInstruments.DAQmx.Task running;
         private AnalogMultiChannelReader analogInReader;
 
-
+        static ReadNidaq()
+        {
+            ChannelNames = new List<Channel>(ChannelValues.OrderBy(n => n).Select((n, i) => new Channel("Dev1/ai" + i, n)));
+        }
 
         public async void Start()
         {
@@ -78,9 +85,9 @@ namespace BalanceAval.Service
                 // Create a virtual channels
                 foreach (var channel in ChannelNames)
                 {
-                    nidaqtask.AIChannels.CreateVoltageChannel(channel, "", (AITerminalConfiguration)(-1), 0.0,
+                    nidaqtask.AIChannels.CreateVoltageChannel(channel.NiInput, "", (AITerminalConfiguration)(-1), 0.0,
                         10.0, AIVoltageUnits.Volts);
-                } 
+                }
                 tcs.SetResult(nidaqtask);
             }
 

@@ -58,22 +58,24 @@
 				</ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<lvc:CartesianChart Height="200" Width="600"
-                                            Series="{Binding Series}"
-                                            DrawMarginFrame="{Binding DrawMarginFrame}"
-                                            YAxes="{Binding YAxes}"
-                                            XAxes="{Binding XAxes}">
-						</lvc:CartesianChart>
+						<StackPanel>
+							<CheckBox Name="Box" Content="{Binding Name}" IsChecked="True"></CheckBox>
+							<lvc:CartesianChart Height="200" Width="600"
+                                                Series="{Binding Series}"
+                                                DrawMarginFrame="{Binding DrawMarginFrame}"
+                                                YAxes="{Binding YAxes}"
+                                                XAxes="{Binding XAxes}" IsVisible="{Binding #Box.IsChecked }">
+							</lvc:CartesianChart>
+						</StackPanel>
 					</DataTemplate>
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
 		<ScrollViewer Grid.Row="1" Grid.Column="1" MaxHeight="400" VerticalAlignment="Top">
 			<StackPanel Orientation="Vertical">
-				<StackPanel Orientation="Horizontal">
-					<Button Command="{Binding Browse}">Browse</Button>
-					<TextBlock Text="{Binding Folder}" Margin="8,0,0,0"></TextBlock>
-				</StackPanel>
+
+				<TextBlock Text="{Binding Folder}" Margin="8,0,0,0"></TextBlock>
+
 
 				<ItemsControl Items="{Binding Slots}" >
 					<ItemsControl.ItemsPanel>
@@ -84,7 +86,7 @@
 					<ItemsControl.ItemTemplate>
 						<DataTemplate>
 							<StackPanel Orientation="Horizontal">
-								<Button Command="{Binding Save}" IsEnabled="{Binding !IsBusy}">Save</Button>
+								<Button Command="{Binding Save}" IsEnabled="{Binding !IsBusy}" Content="{Binding Content}" ></Button>
 								<TextBlock Margin="10,0,0,0" Text="{Binding Time}"></TextBlock>
 							</StackPanel>
 
@@ -94,10 +96,6 @@
 			</StackPanel>
 		</ScrollViewer>
 
-		<views:CanvasCustom Grid.Column="1" Grid.Row="2" Width="300" Height="300" NewPoint="{Binding NewPoint}"  >
-			<Border Width="300" Height="300" BorderThickness="1" BorderBrush="Gray"></Border>
-
-		</views:CanvasCustom>
 
 	</Grid>
 

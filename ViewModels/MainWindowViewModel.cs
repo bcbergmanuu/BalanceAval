@@ -6,8 +6,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using Avalonia;
-using Avalonia.Collections;
+
 using Avalonia.Threading;
 using BalanceAval.Models;
 using BalanceAval.Service;
@@ -20,10 +19,15 @@ namespace BalanceAval.ViewModels
     public class MainWindowViewModel : ViewModelBase, IMainWindowViewModel
     {
         private readonly IReadNidaq _nidaq;
+
+        static MainWindowViewModel()
+        {
+            Errors = new ObservableCollection<ErrorModel>();
+        }
         public MainWindowViewModel(IReadNidaq nidaq)
         {
-            
-            Errors = new ObservableCollection<ErrorModel>();
+
+
 
             ConfigureStateMachine();
             _nidaq = nidaq;
@@ -33,7 +37,7 @@ namespace BalanceAval.ViewModels
 
             foreach (var channelName in ReadNidaq.ChannelNames)
             {
-                CartesianViewModels.Add(new CartesianViewModel(channelName, ReadNidaq.ChannelNames.IndexOf(channelName)));
+                CartesianViewModels.Add(new CartesianViewModel(channelName.Name, ReadNidaq.ChannelNames.IndexOf(channelName)));
             }
             nidaq.Error += NidaqOnError;
             nidaq.DataReceived += NidaqOnDataReceived;
@@ -65,7 +69,7 @@ namespace BalanceAval.ViewModels
             TimeOut,
         }
 
-        private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new StateMachine<NidaqStates, NidaqTriggers>(NidaqStates.Stopped);
+        private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new(NidaqStates.Stopped);
 
         private void ConfigureStateMachine()
         {
@@ -95,7 +99,7 @@ namespace BalanceAval.ViewModels
                 Task.Run(async delegate
                 {
                     await Task.Delay(1000);
-                    _stateMachine.Fire(NidaqTriggers.DelayFinished);
+                    await _stateMachine.FireAsync(NidaqTriggers.DelayFinished);
                 });
 
             }).Permit(NidaqTriggers.DelayFinished, NidaqStates.Stopped);
@@ -107,13 +111,12 @@ namespace BalanceAval.ViewModels
             Dispatcher.UIThread.InvokeAsync(() => Nidaq_DataReceived(e));
         }
 
-        private void Nidaq_DataReceived(List<AnalogChannel> e)
+        private void Nidaq_DataReceived(IReadOnlyList<AnalogChannel> e)
         {
             UpdateCartesians(e);
             var rows = ToDataRows(e);
             var measurementRows = rows as MeasurementRow[] ?? rows.ToArray();
             StoreDatabase(measurementRows);
-            AddPoints(measurementRows);
         }
 
         private void UpdateCartesians(IReadOnlyList<AnalogChannel> e)
@@ -126,8 +129,6 @@ namespace BalanceAval.ViewModels
 
         private bool _startEnabled = true;
         private bool _stopEnabled;
-        
-        private Point _newPoint1;
 
         public bool StopEnabled
         {
@@ -148,15 +149,15 @@ namespace BalanceAval.ViewModels
 
             for (var i = 0; i < contents[0].Count; i++)
             {
-                rows.Add(new MeasurementRow()
-                {
-                    X1 = contents[0][i],
-                    X2 = contents[1][1],
-                    X3 = contents[2][i],
-                    X4 = contents[3][i],
-                });
-            }
+                var instance = new MeasurementRow();
 
+                foreach (var channelValue in ReadNidaq.ChannelValues)
+                {
+                    typeof(MeasurementRow).GetProperty(channelValue).SetValue(instance, contents[ReadNidaq.ChannelValues.IndexOf(channelValue)][i]);
+                }
+                
+                rows.Add(instance);
+            }
             return rows;
         }
 
@@ -221,7 +222,7 @@ namespace BalanceAval.ViewModels
         {
             get
             {
-                return new Command(((d) =>
+                return new Command((_ =>
                 {
                     try
                     {
@@ -235,26 +236,8 @@ namespace BalanceAval.ViewModels
             }
         }
 
-
         public string Folder => Program.UserPath;
 
-        public Point NewPoint
-        {
-            get => _newPoint1;
-            set => this.RaiseAndSetIfChanged(ref _newPoint1, value);
-        }
-
-        private void AddPoints(IEnumerable<MeasurementRow> data)
-        {
-            var point = COP(data.First());
-            NewPoint = point;
-        }
-
-
-        public Point COP(MeasurementRow r)
-        {
-            return new Point((r.X4 + r.X2) - (r.X1 + r.X3) * 20, (r.X3 + r.X4) - (r.X1 + r.X2) * 40);
-        }
     }
 
 

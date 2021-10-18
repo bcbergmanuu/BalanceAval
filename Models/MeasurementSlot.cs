@@ -15,9 +15,4 @@ namespace BalanceAval.Models
         [Required]
         public ICollection<MeasurementRow> MeasurementRows { get; set; }
     }
-
-    public class Ellipse
-    {
-        public Point CenterPoint { get; set; }
-    }
 }

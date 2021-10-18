@@ -50,7 +50,7 @@ namespace BalanceAval.ViewModels
             {
                 new Axis // the "units" and "tens" series will be scaled on this axis
                 {
-                    Name = Name,
+                    Name = "Channel " + Name,
                     LabelsPaint = new SolidColorPaint(new SKColor(25, 70, 110)),
                     TextSize = 10,
                     NameTextSize = 10,

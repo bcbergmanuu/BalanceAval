@@ -18,11 +18,25 @@ namespace BalanceAval.ViewModels
         private readonly MeasurementSlot _slot;
         private readonly string _fileName;
         private bool _isBusy;
+        private string _content;
 
         public MeasurementSlotVM(MeasurementSlot slot)
         {
             _slot = slot;
             _fileName = _slot.Time.ToString("yyyy-dd-M--HH-mm-ss") + ".csv";
+            SetContent();
+        }
+
+        private void SetContent()
+        {
+            if (File.Exists(SavedFileName))
+            {
+                IsBusy = true;
+                Content = "Saved!";
+            }
+
+            else
+                Content = "Save";
         }
 
         public ICommand Save => new Command(WriteToFile);
@@ -30,22 +44,32 @@ namespace BalanceAval.ViewModels
         private IEnumerable<CSVFormat> GetData()
         {
             using var dbContext = new MyDbContext();
-            return dbContext.MeasurementSlots.Include(s => s.MeasurementRows).First(i => i.Id == _slot.Id).MeasurementRows.Select(mr => new CSVFormat()
+            var data = dbContext.MeasurementSlots.Include(s => s.MeasurementRows).First(i => i.Id == _slot.Id).MeasurementRows;
+
+            foreach (var measurementRow in data)
             {
-                X1 = (mr.X1 * ReadNidaq.MultiplicationFactor).ToString("N"),
-                X2 = (mr.X2 * ReadNidaq.MultiplicationFactor).ToString("N"),
-                X3 = (mr.X3 * ReadNidaq.MultiplicationFactor).ToString("N"),
-                X4 = (mr.X4 * ReadNidaq.MultiplicationFactor).ToString("N"),
-            });
+                var csvRow = new CSVFormat();
+                foreach (var channelValue in ReadNidaq.ChannelValues)
+                {
+                    var measurementRowvalue = typeof(MeasurementRow).GetProperty(channelValue).GetValue(measurementRow);
+                    
+                    typeof(CSVFormat).GetProperty(channelValue).SetValue(csvRow, ((double)measurementRowvalue * ReadNidaq.MultiplicationFactor).ToString("N"));
+                }
+
+                yield return csvRow;
+            }
         }
+
+        public string SavedFileName => Path.Combine(Program.UserPath, _fileName);
 
         public async void WriteToFile(object window)
         {
             try
             {
-                await using var writer = new StreamWriter(Path.Combine(Program.UserPath, _fileName));
+                await using var writer = new StreamWriter(SavedFileName);
                 await using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
                 await csv.WriteRecordsAsync(GetData());
+                SetContent();
             }
             catch(Exception e)
             {
@@ -62,14 +86,10 @@ namespace BalanceAval.ViewModels
             set => this.RaiseAndSetIfChanged(ref _isBusy, value);
         }
 
-        class CSVFormat
+        public string Content
         {
-            public string X1 { get; set; }
-            public string X2 { get; set; }
-            public string X3 { get; set; }
-            public string X4 { get; set; }
+            get => _content;
+            set => this.RaiseAndSetIfChanged(ref _content, value);
         }
-
-  
     }
 }
