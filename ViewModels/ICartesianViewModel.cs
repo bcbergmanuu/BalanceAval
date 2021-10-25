@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using BalanceAval.Service;
 using LiveChartsCore;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
@@ -11,9 +12,8 @@ namespace BalanceAval.ViewModels
         public ObservableCollection<ISeries> Series { get; set; }
 
         public void Update(IEnumerable<double> data);
-        public string Name { get; }
+        public Channel Channel { get; }
 
-        public int Id { get; }
 
         public DrawMarginFrame DrawMarginFrame { get; }
         public IEnumerable<ICartesianAxis> XAxes { get; }

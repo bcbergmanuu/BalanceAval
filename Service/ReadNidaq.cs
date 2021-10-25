@@ -38,7 +38,7 @@ namespace BalanceAval.Service
 
         static ReadNidaq()
         {
-            ChannelNames = new List<Channel>(ChannelValues.OrderBy(n => n).Select((n, i) => new Channel("Dev1/ai" + i, n)));
+            ChannelNames = new List<Channel>(ChannelValues.Select((n, i) => new Channel("Dev1/ai" + (i + 1), n)));
         }
 
         public async void Start()
@@ -72,6 +72,7 @@ namespace BalanceAval.Service
                 OnError(e.Message);
             }
         }
+
 
         private static Task<NationalInstruments.DAQmx.Task> CreateNidaqTask()
         {
@@ -148,7 +149,7 @@ namespace BalanceAval.Service
             {
                 var channel = new AnalogChannel()
                 {
-                    Name = channelName.ChannelName,
+                    NiInput = channelName.ChannelName,
                     Values = new List<double>()
                 };
 
