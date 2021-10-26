@@ -12,7 +12,7 @@ namespace BalanceAval.ViewModels
         public ObservableCollection<ISeries> Series { get; set; }
 
         public void Update(IEnumerable<double> data);
-        public Channel Channel { get; }
+        public string ChannelName { get; }
 
 
         public DrawMarginFrame DrawMarginFrame { get; }

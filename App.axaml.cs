@@ -1,6 +1,8 @@
+using AutoMapper;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using BalanceAval.Models;
 using BalanceAval.ViewModels;
 using BalanceAval.Views;
 using Splat;
@@ -11,10 +13,14 @@ namespace BalanceAval
     {
         public override void Initialize()
         {
+
+
             Bootstrapper.Register(Locator.CurrentMutable, Locator.Current);
             AvaloniaXamlLoader.Load(this);
-
+        
         }
+
+        
 
         public override void OnFrameworkInitializationCompleted()
         {

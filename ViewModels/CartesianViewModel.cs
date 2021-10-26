@@ -17,9 +17,9 @@ namespace BalanceAval.ViewModels
         private int _index = 0;
         private readonly ObservableCollection<ObservablePoint> _observableValues;
 
-        public CartesianViewModel(Channel channel)
+        public CartesianViewModel(string channel)
         {
-            Channel = channel;
+            ChannelName = channel;
 
             _observableValues = new ObservableCollection<ObservablePoint>();
             Series = new ObservableCollection<ISeries>
@@ -50,7 +50,7 @@ namespace BalanceAval.ViewModels
             {
                 new Axis // the "units" and "tens" series will be scaled on this axis
                 {
-                    Name = "Channel " + channel.Name,
+                    Name = "Channel " + channel,
                     LabelsPaint = new SolidColorPaint(new SKColor(25, 70, 110)),
                     TextSize = 10,
                     NameTextSize = 10,
@@ -86,6 +86,6 @@ namespace BalanceAval.ViewModels
             RemoveLastSeries();
         }
 
-        public Channel Channel { get; }
+        public string ChannelName { get; }
     }
 }

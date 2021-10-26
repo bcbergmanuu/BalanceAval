@@ -1,29 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Avalonia.Controls.Platform;
 using BalanceAval.Models;
 using NationalInstruments;
 using NationalInstruments.DAQmx;
-using Task = System.Threading.Tasks.Task;
 
 namespace BalanceAval.Service
 {
-    public readonly struct Channel
-    {
-        public Channel(string niInput, string name)
-        {
-            NiInput = niInput;
-            Name = name;
-        }
-        public string NiInput { get; }
-        public string Name { get; }
-    }
-
-
+    
 
     public class ReadNidaq : IReadNidaq
     {
@@ -31,14 +16,16 @@ namespace BalanceAval.Service
         public const int Buffersize = 50;
         public const double Frequency = 100;
 
-        public static readonly IList<Channel> ChannelNames;
-        public static readonly string[] ChannelValues = { "Z1", "Z4", "Z2", "Z3", "Y", "X2", "X1" }; //note these refer to object properties also
+        public static readonly Dictionary<string,string> Channels;
+        
         private NationalInstruments.DAQmx.Task running;
         private AnalogMultiChannelReader analogInReader;
 
         static ReadNidaq()
         {
-            ChannelNames = new List<Channel>(ChannelValues.Select((n, i) => new Channel("Dev1/ai" + (i + 1), n)));
+            Channels = new []{ "Z1", "Z4", "Z2", "Z3", "Y", "X2", "X1" }
+                .Select((n, i) => new KeyValuePair<string,string>("Dev1/ai" + (i + 1), n))
+                .ToDictionary(x => x.Value, x => x.Key); ;
         }
 
         public async void Start()
@@ -78,15 +65,14 @@ namespace BalanceAval.Service
         {
             var tcs = new TaskCompletionSource<NationalInstruments.DAQmx.Task>();
 
-            NationalInstruments.DAQmx.Task nidaqtask;
             try
             {
-                nidaqtask = new NationalInstruments.DAQmx.Task();
+                NationalInstruments.DAQmx.Task nidaqtask = new NationalInstruments.DAQmx.Task();
 
                 // Create a virtual channels
-                foreach (var channel in ChannelNames)
+                foreach (var channel in Channels)
                 {
-                    nidaqtask.AIChannels.CreateVoltageChannel(channel.NiInput, "", (AITerminalConfiguration)(-1), 0.0,
+                    nidaqtask.AIChannels.CreateVoltageChannel(channel.Key, "", (AITerminalConfiguration)(-1), 0.0,
                         10.0, AIVoltageUnits.Volts);
                 }
                 tcs.SetResult(nidaqtask);

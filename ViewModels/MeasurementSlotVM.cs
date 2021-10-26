@@ -5,15 +5,27 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
-using Avalonia.Controls;
+using AutoMapper;
 using BalanceAval.Models;
-using BalanceAval.Service;
 using CsvHelper;
 using Microsoft.EntityFrameworkCore;
 
 namespace BalanceAval.ViewModels
 {
-    public class MeasurementSlotVM : ViewModelBase  
+    class MapperConfig
+    {
+        static MapperConfig()
+        {
+            var configuration = new MapperConfiguration(cfg => { cfg.CreateMap<CSVFormat, MeasurementRow>(); });
+#if DEBUG
+            configuration.AssertConfigurationIsValid();
+#endif
+            Map = new Mapper(configuration);
+        }
+        public static Mapper Map { get; }
+    }
+
+    public class MeasurementSlotVM : ViewModelBase
     {
         private readonly MeasurementSlot _slot;
         private readonly string _fileName;
@@ -41,23 +53,14 @@ namespace BalanceAval.ViewModels
 
         public ICommand Save => new Command(WriteToFile);
 
+
+
         private IEnumerable<CSVFormat> GetData()
         {
             using var dbContext = new MyDbContext();
             var data = dbContext.MeasurementSlots.Include(s => s.MeasurementRows).First(i => i.Id == _slot.Id).MeasurementRows;
 
-            foreach (var measurementRow in data)
-            {
-                var csvRow = new CSVFormat();
-                foreach (var channelValue in ReadNidaq.ChannelValues)
-                {
-                    var measurementRowvalue = typeof(MeasurementRow).GetProperty(channelValue).GetValue(measurementRow);
-                    
-                    typeof(CSVFormat).GetProperty(channelValue).SetValue(csvRow, ((double)measurementRowvalue * ReadNidaq.MultiplicationFactor).ToString("N"));
-                }
-
-                yield return csvRow;
-            }
+            yield return MapperConfig.Map.Map<CSVFormat>(data);
         }
 
         public string SavedFileName => Path.Combine(Program.UserPath, _fileName);
@@ -71,9 +74,9 @@ namespace BalanceAval.ViewModels
                 await csv.WriteRecordsAsync(GetData());
                 SetContent();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                MainWindowViewModel.Errors.Add(new ErrorModel(){Message = e.Message});
+                MainWindowViewModel.Errors.Add(new ErrorModel() { Message = e.Message });
             }
         }
 

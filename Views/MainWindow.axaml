@@ -59,7 +59,7 @@
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
 						<StackPanel>
-							<CheckBox Name="Box" Content="{Binding Channel.Name}" IsChecked="True"></CheckBox>
+							<CheckBox Name="Box" Content="{Binding ChannelName}" IsChecked="True"></CheckBox>
 							<lvc:CartesianChart Height="200" Width="600"
                                                 Series="{Binding Series}"
                                                 DrawMarginFrame="{Binding DrawMarginFrame}"

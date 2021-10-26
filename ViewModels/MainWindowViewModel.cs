@@ -35,9 +35,9 @@ namespace BalanceAval.ViewModels
             CartesianViewModels = new ObservableCollection<ICartesianViewModel>();
             Slots = new ObservableCollection<MeasurementSlotVM>();
 
-            foreach (var channelName in ReadNidaq.ChannelNames)
+            foreach (var channelName in ReadNidaq.Channels)
             {
-                CartesianViewModels.Add(new CartesianViewModel(channelName));
+                CartesianViewModels.Add(new CartesianViewModel(channelName.Key));
             }
             nidaq.Error += NidaqOnError;
             nidaq.DataReceived += NidaqOnDataReceived;
@@ -121,9 +121,10 @@ namespace BalanceAval.ViewModels
 
         private void UpdateCartesians(IEnumerable<AnalogChannel> e)
         {
+
             foreach (var analogChannel in e)
             {
-                CartesianViewModels.First(q => q.Channel.NiInput.Equals(analogChannel.NiInput)).Update(analogChannel.Values);
+                CartesianViewModels.First(q => q.ChannelName.Equals(ReadNidaq.Channels[analogChannel.NiInput])).Update(analogChannel.Values);
             }
         }
 
@@ -142,21 +143,22 @@ namespace BalanceAval.ViewModels
             set => this.RaiseAndSetIfChanged(ref _startEnabled, value);
         }
 
-        //todo: test this!
-        public static IEnumerable<MeasurementRow> ToDataRows(IEnumerable<AnalogChannel> data)
-        {
-            var rows = new List<MeasurementRow>();
-            var contents = data.Select(channel => channel.Values.ToList()).ToList();
+        
 
-            for (var i = 0; i < contents[0].Count; i++)
+        public static IEnumerable<MeasurementRow> ToDataRows(IReadOnlyList<AnalogChannel> data)
+        {
+            var orderofChannels = data.Select(s => s.NiInput).ToArray();
+            var rows = new List<MeasurementRow>();
+            for (var i = 0; i < data.First().Values.Count; i++)
             {
                 var instance = new MeasurementRow();
 
-                foreach (var channelValue in ReadNidaq.ChannelValues)
+                for (var j = 0; j < orderofChannels.Length; j++)
                 {
-                    typeof(MeasurementRow).GetProperty(channelValue).SetValue(instance, contents[ReadNidaq.ChannelValues.IndexOf(channelValue)][i]);
+                    typeof(MeasurementRow).GetProperty(ReadNidaq.Channels[orderofChannels[j]])
+                        .SetValue(instance, data[j].Values[i] * ReadNidaq.MultiplicationFactor);
                 }
-                
+
                 rows.Add(instance);
             }
             return rows;

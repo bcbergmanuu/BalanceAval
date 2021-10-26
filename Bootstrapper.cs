@@ -5,16 +5,19 @@ using Splat;
 
 namespace BalanceAval
 {
+    
+
     public static class Bootstrapper
     {
         public static void Register(IMutableDependencyResolver services, IReadonlyDependencyResolver resolver)
         {
             services.Register<IReadNidaq>(() => new ReadNidaq());  // Call services.Register<T> and pass it lambda that creates instance of your service
+            
 
             services.Register<IMainWindowViewModel>(() => new MainWindowViewModel(
                 resolver.GetRequiredService<IReadNidaq>()
             ));
-
+            
         }
 
         public static TService GetRequiredService<TService>(this IReadonlyDependencyResolver resolver)
