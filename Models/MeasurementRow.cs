@@ -1,17 +1,18 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace BalanceAval.Models
 {
 
     public class CSVFormat
     {
-        public double Z1 { get; set; }
-        public double Z2 { get; set; }
-        public double Z3 { get; set; }
-        public double Z4 { get; set; }
-        public double X1 { get; set; }
-        public double X2 { get; set; }
-        public double Y { get; set; }
+        public float Z1 { get; set; }
+        public float Z2 { get; set; }
+        public float Z3 { get; set; }
+        public float Z4 { get; set; }
+        public float X1 { get; set; }
+        public float X2 { get; set; }
+        public float Y { get; set; }
     }
 
     public class MeasurementRow

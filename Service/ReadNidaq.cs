@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BalanceAval.Models;
+using BalanceAval.ViewModels;
 using NationalInstruments;
 using NationalInstruments.DAQmx;
+using Stateless;
+using Task = System.Threading.Tasks.Task;
 
 namespace BalanceAval.Service
 {
-    
+
 
     public class ReadNidaq : IReadNidaq
     {
@@ -16,41 +19,86 @@ namespace BalanceAval.Service
         public const int Buffersize = 50;
         public const double Frequency = 100;
 
-        public static readonly Dictionary<string,string> Channels;
-        
-        private NationalInstruments.DAQmx.Task running;
-        private AnalogMultiChannelReader analogInReader;
+        public static readonly Dictionary<string, string> Channels;
+        private volatile bool _stop = false;
+
+        private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new(NidaqStates.Stopped);
+        private enum NidaqTriggers
+        {
+            Start,
+            Stop,
+        }
+        public enum NidaqStates
+        {
+            Running,
+            Stopped,
+        }
+
+        public ReadNidaq()
+        {
+            _stateMachine.Configure(NidaqStates.Running).OnEntry(() =>
+                {
+                    _stop = false;
+
+                    StartStream();
+                })
+                .Permit(NidaqTriggers.Stop, NidaqStates.Stopped);
+
+
+            _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
+                {
+                    _stop = true;
+                })
+                .Permit(NidaqTriggers.Start, NidaqStates.Running);
+        }
+
 
         static ReadNidaq()
         {
-            Channels = new []{ "Z1", "Z4", "Z2", "Z3", "Y", "X2", "X1" }
-                .Select((n, i) => new KeyValuePair<string,string>("Dev1/ai" + (i + 1), n))
-                .ToDictionary(x => x.Value, x => x.Key); ;
+            Channels = new[] { "Z1", "Z4", "Z2", "Z3", "Y", "X2", "X1" }
+                .Select((n, i) => new KeyValuePair<string, string>("Dev1/ai" + (i + 1), n))
+                .ToDictionary(x => x.Key, x => x.Value); ;
         }
 
         public async void Start()
         {
+            await _stateMachine.FireAsync(NidaqTriggers.Start);
+        }
+
+        private async void StartStream()
+        {
             // Create a new task
             try
             {
-                Stop();
-                running = await CreateNidaqTask();
+                var running = await CreateNidaqTask();
 
 
-                analogInReader = new AnalogMultiChannelReader(running.Stream)
+                AnalogMultiChannelReader analogInReader = new(running.Stream)
                 {
                     // marshals callbacks across threads appropriately.
                     // Use SynchronizeCallbacks to specify that the object 
                     SynchronizeCallbacks = true
                 };
 
-
-                analogInReader.BeginReadWaveform(Buffersize, AnalogInCallback, running);
                 running.Timing.ConfigureSampleClock("", Frequency, SampleClockActiveEdge.Rising,
-                    SampleQuantityMode.ContinuousSamples, Buffersize);
+                                  SampleQuantityMode.ContinuousSamples, Buffersize);
+
+                var data = await BeginRead(analogInReader, running);
+                OnDataReceived(SamplesToModel(data));
+
+                while (true)
+                {
+                    if (_stop)
+                    {
+                        running.Stop();
+                        break;
+                    }
+
+                    data = await ContinueRead(data, analogInReader, running);
+                    OnDataReceived(SamplesToModel(data));
+                }
 
                 // Verify the Task
-
 
                 running.Control(TaskAction.Verify);
             }
@@ -58,6 +106,51 @@ namespace BalanceAval.Service
             {
                 OnError(e.Message);
             }
+        }
+
+
+        private static Task<AnalogWaveform<double>[]> ContinueRead(AnalogWaveform<double>[] data, AnalogMultiChannelReader analogInReader, NationalInstruments.DAQmx.Task running)
+        {
+            var tcs = new TaskCompletionSource<AnalogWaveform<double>[]>();
+
+            analogInReader.BeginMemoryOptimizedReadWaveform(Buffersize,
+                ar =>
+                {
+                    try
+                    {
+
+                        tcs.SetResult(analogInReader.EndReadWaveform(ar));
+                    }
+                    catch (NationalInstruments.DAQmx.DaqException exception)
+                    {
+                        tcs.SetException(exception);
+                    }
+                    // Read the available data from the channels
+
+                }, running, data);
+            return tcs.Task;
+        }
+
+        private static Task<AnalogWaveform<double>[]> BeginRead(AnalogMultiChannelReader analogInReader, NationalInstruments.DAQmx.Task running)
+        {
+            var tcs = new TaskCompletionSource<AnalogWaveform<double>[]>();
+            analogInReader.BeginReadWaveform(Buffersize, ar =>
+            {
+                try
+                {
+
+                    tcs.SetResult(analogInReader.EndReadWaveform(ar));
+                }
+                catch (NationalInstruments.DAQmx.DaqException exception)
+                {
+                    tcs.SetException(exception);
+
+                }
+                // Read the available data from the channels
+
+            }, running);
+
+            return tcs.Task;
         }
 
 
@@ -88,11 +181,11 @@ namespace BalanceAval.Service
 
 
 
-        public void Stop()
+        public async void Stop()
         {
             try
             {
-                running.Stop();
+                await _stateMachine.FireAsync(NidaqTriggers.Stop);
             }
             catch
             {
@@ -104,29 +197,6 @@ namespace BalanceAval.Service
 
         public event EventHandler<List<AnalogChannel>> DataReceived;
 
-        private void AnalogInCallback(IAsyncResult ar)
-        {
-            AnalogWaveform<double>[]? data;
-
-            try
-            {
-                if (running.IsDone)
-                    return;
-                data = analogInReader.EndReadWaveform(ar);
-            }
-            catch (NationalInstruments.DAQmx.DaqException exception)
-            {
-                OnError(exception.Message);
-                return;
-            }
-            // Read the available data from the channels
-
-            var model = SamplesToModel(data);
-            OnDataReceived(model);
-
-            analogInReader.BeginMemoryOptimizedReadWaveform(Buffersize,
-                AnalogInCallback, running, data);
-        }
 
         private static List<AnalogChannel> SamplesToModel(IEnumerable<AnalogWaveform<double>> samples)
         {

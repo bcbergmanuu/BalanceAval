@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using AutoMapper;
 using BalanceAval.Models;
@@ -16,7 +17,11 @@ namespace BalanceAval.ViewModels
     {
         static MapperConfig()
         {
-            var configuration = new MapperConfiguration(cfg => { cfg.CreateMap<CSVFormat, MeasurementRow>(); });
+            var configuration = new MapperConfiguration(cfg =>
+            {
+                cfg.CreateMap<MeasurementRow, CSVFormat>();
+            });
+
 #if DEBUG
             configuration.AssertConfigurationIsValid();
 #endif
@@ -28,14 +33,13 @@ namespace BalanceAval.ViewModels
     public class MeasurementSlotVM : ViewModelBase
     {
         private readonly MeasurementSlot _slot;
-        private readonly string _fileName;
         private bool _isBusy;
         private string _content;
 
         public MeasurementSlotVM(MeasurementSlot slot)
         {
             _slot = slot;
-            _fileName = _slot.Time.ToString("yyyy-dd-M--HH-mm-ss") + ".csv";
+            Time = _slot.Time.ToString("yyyy-dd-M--HH-mm-ss") + ".csv";
             SetContent();
         }
 
@@ -55,18 +59,22 @@ namespace BalanceAval.ViewModels
 
 
 
-        private IEnumerable<CSVFormat> GetData()
+        private async IAsyncEnumerable<CSVFormat> GetData()
         {
-            using var dbContext = new MyDbContext();
+            await using var dbContext = new MyDbContext();
             var data = dbContext.MeasurementSlots.Include(s => s.MeasurementRows).First(i => i.Id == _slot.Id).MeasurementRows;
 
-            yield return MapperConfig.Map.Map<CSVFormat>(data);
+            foreach (var measurementRow in data)
+            {
+                yield return MapperConfig.Map.Map<CSVFormat>(measurementRow);
+            }
         }
 
-        public string SavedFileName => Path.Combine(Program.UserPath, _fileName);
+        public string SavedFileName => Path.Combine(Program.UserPath, Time);
 
         public async void WriteToFile(object window)
         {
+            IsBusy = true;
             try
             {
                 await using var writer = new StreamWriter(SavedFileName);
@@ -81,7 +89,7 @@ namespace BalanceAval.ViewModels
         }
 
 
-        public string Time => _fileName;
+        public string Time { get; }
 
         public bool IsBusy
         {

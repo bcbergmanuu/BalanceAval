@@ -37,7 +37,7 @@ namespace BalanceAval.ViewModels
 
             foreach (var channelName in ReadNidaq.Channels)
             {
-                CartesianViewModels.Add(new CartesianViewModel(channelName.Key));
+                CartesianViewModels.Add(new CartesianViewModel(channelName.Value));
             }
             nidaq.Error += NidaqOnError;
             nidaq.DataReceived += NidaqOnDataReceived;
@@ -114,17 +114,18 @@ namespace BalanceAval.ViewModels
         private void Nidaq_DataReceived(IReadOnlyList<AnalogChannel> e)
         {
             UpdateCartesians(e);
-            var rows = ToDataRows(e);
-            var measurementRows = rows as MeasurementRow[] ?? rows.ToArray();
-            StoreDatabase(measurementRows);
+            StoreDatabase(ToDataRows(e));
         }
 
         private void UpdateCartesians(IEnumerable<AnalogChannel> e)
         {
-
-            foreach (var analogChannel in e)
+            var join = e.Join(CartesianViewModels, 
+                x => ReadNidaq.Channels[x.NiInput], 
+                y => y.ChannelName, 
+                (nidaq, cartesian) => new { nidaq, cartesian });
+            foreach (var an in join)
             {
-                CartesianViewModels.First(q => q.ChannelName.Equals(ReadNidaq.Channels[analogChannel.NiInput])).Update(analogChannel.Values);
+                an.cartesian.Update(an.nidaq.Values);
             }
         }
 
@@ -142,8 +143,6 @@ namespace BalanceAval.ViewModels
             get => _startEnabled;
             set => this.RaiseAndSetIfChanged(ref _startEnabled, value);
         }
-
-        
 
         public static IEnumerable<MeasurementRow> ToDataRows(IReadOnlyList<AnalogChannel> data)
         {
