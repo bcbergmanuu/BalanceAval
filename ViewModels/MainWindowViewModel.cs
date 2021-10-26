@@ -60,13 +60,12 @@ namespace BalanceAval.ViewModels
             Start,
             Stop,
             Error,
-            DelayFinished,
         }
         public enum NidaqStates
         {
             Running,
             Stopped,
-            TimeOut,
+     
         }
 
         private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new(NidaqStates.Stopped);
@@ -82,27 +81,17 @@ namespace BalanceAval.ViewModels
                     StartSlot();
                     _nidaq.Start();
                 })
-                .Permit(NidaqTriggers.Stop, NidaqStates.TimeOut)
-                .Permit(NidaqTriggers.Error, NidaqStates.TimeOut);
+                .Permit(NidaqTriggers.Stop, NidaqStates.Stopped)
+                .Permit(NidaqTriggers.Error, NidaqStates.Stopped);
 
             _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
                 {
                     StartEnabled = true;
+                    StopEnabled = false;
                     _nidaq.Stop();
+                    DisplayLastSlot();
                 })
                 .Permit(NidaqTriggers.Start, NidaqStates.Running);
-            _stateMachine.Configure(NidaqStates.TimeOut).OnEntry(() =>
-            {
-                StopEnabled = false;
-                _nidaq.Stop();
-                DisplayLastSlot();
-                Task.Run(async delegate
-                {
-                    await Task.Delay(1000);
-                    await _stateMachine.FireAsync(NidaqTriggers.DelayFinished);
-                });
-
-            }).Permit(NidaqTriggers.DelayFinished, NidaqStates.Stopped);
         }
 
 
