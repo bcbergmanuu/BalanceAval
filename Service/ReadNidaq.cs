@@ -16,7 +16,7 @@ namespace BalanceAval.Service
     public class ReadNidaq : IReadNidaq
     {
         public const double MultiplicationFactor = 25.00;
-        public const int Buffersize = 50;
+        public const int Buffersize = 10;
         public const double Frequency = 100;
 
         public static readonly Dictionary<string, string> Channels;

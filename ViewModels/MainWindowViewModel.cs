@@ -44,6 +44,8 @@ namespace BalanceAval.ViewModels
             FillSlots();
         }
 
+
+
         private void NidaqOnError(object? sender, string e)
         {
             Dispatcher.UIThread.InvokeAsync(() =>
@@ -65,7 +67,7 @@ namespace BalanceAval.ViewModels
         {
             Running,
             Stopped,
-     
+
         }
 
         private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new(NidaqStates.Stopped);
@@ -104,13 +106,14 @@ namespace BalanceAval.ViewModels
         {
             UpdateCartesians(e);
             StoreDatabase(ToDataRows(e));
+            CopCalc(ToDataRows(e));
         }
 
         private void UpdateCartesians(IEnumerable<AnalogChannel> e)
         {
-            var join = e.Join(CartesianViewModels, 
-                x => ReadNidaq.Channels[x.NiInput], 
-                y => y.ChannelName, 
+            var join = e.Join(CartesianViewModels,
+                x => ReadNidaq.Channels[x.NiInput],
+                y => y.ChannelName,
                 (nidaq, cartesian) => new { nidaq, cartesian });
             foreach (var an in join)
             {
@@ -120,6 +123,8 @@ namespace BalanceAval.ViewModels
 
         private bool _startEnabled = true;
         private bool _stopEnabled;
+        private double _copX;
+        private double _copY;
 
         public bool StopEnabled
         {
@@ -229,6 +234,28 @@ namespace BalanceAval.ViewModels
 
         public string Folder => Program.UserPath;
 
+
+        public double CopX
+        {
+            get => _copX;
+            set => this.RaiseAndSetIfChanged(ref _copX, value);
+        }
+
+        public double CopY
+        {
+            get => _copY;
+            set => this.RaiseAndSetIfChanged(ref _copY, value);
+        }
+
+        private async void CopCalc(IEnumerable<MeasurementRow> rows)
+        {
+            var f = rows.First();
+            if(f == null) return;
+            var x = (f.Z2 + f.Z3) - (f.Z1 + f.Z4);
+            var y = (f.Z3 + f.Z4) - (f.Z1 + f.Z2); 
+            CopX = x  + 165 ;
+            CopY = y*.5 + 75; 
+        }
     }
 
 

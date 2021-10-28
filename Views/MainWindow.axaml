@@ -15,21 +15,9 @@
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
-	<Grid>
+	<Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="Auto,Auto">
 
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto" />
-			<RowDefinition Height="Auto" />
-			<RowDefinition />
-
-		</Grid.RowDefinitions>
-		<Grid.ColumnDefinitions>
-			<ColumnDefinition Width="Auto" />
-			<ColumnDefinition Width="Auto" />
-		</Grid.ColumnDefinitions>
-
-
-		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
 			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
 			<Button Command="{Binding Stop}" IsEnabled="{Binding StopEnabled}">Stop</Button>
 
@@ -49,8 +37,8 @@
 			</ItemsControl>
 		</StackPanel>
 
-		<ScrollViewer Grid.Row="1" Grid.Column="0" Grid.RowSpan="2">
-			<ItemsControl Items="{Binding CartesianViewModels }" >
+		<ScrollViewer Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" MaxHeight="700" VerticalScrollBarVisibility="Visible" Margin="10">
+			<ItemsControl Items="{Binding CartesianViewModels }" Margin="10" >
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
 						<StackPanel Orientation="Vertical" HorizontalAlignment="Left"/>
@@ -58,7 +46,7 @@
 				</ItemsControl.ItemsPanel>
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
-						<StackPanel>
+						<StackPanel Orientation="Horizontal">
 							<CheckBox Name="Box" Content="{Binding ChannelName}" IsChecked="True"></CheckBox>
 							<lvc:CartesianChart Height="200" Width="600"
                                                 Series="{Binding Series}"
@@ -71,8 +59,8 @@
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
-		<ScrollViewer Grid.Row="1" Grid.Column="1" MaxHeight="400" VerticalAlignment="Top">
-			<StackPanel Orientation="Vertical">
+		<ScrollViewer Grid.Row="2" Grid.Column="1" MaxHeight="300" VerticalAlignment="Top" HorizontalScrollBarVisibility="Visible" Margin="10">
+			<StackPanel Orientation="Vertical" Margin="10">
 
 				<TextBlock Text="{Binding Folder}" Margin="8,0,0,0"></TextBlock>
 
@@ -89,14 +77,16 @@
 								<Button Command="{Binding Save}" IsEnabled="{Binding !IsBusy}" Content="{Binding Content}" ></Button>
 								<TextBlock Margin="10,0,0,0" Text="{Binding Time}"></TextBlock>
 							</StackPanel>
-
-						</DataTemplate>
+                        </DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
 			</StackPanel>
 		</ScrollViewer>
-
-
-	</Grid>
+		<Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="1" Margin="10"  >
+            <Canvas Width="330" Height="150" Background="LightBlue">
+                <Rectangle Height="7" Width="7" Fill="Black" Canvas.Top="{Binding CopY}" Canvas.Left="{Binding CopX}"></Rectangle>
+            </Canvas>
+		</Border>
+    </Grid>
 
 </Window>
