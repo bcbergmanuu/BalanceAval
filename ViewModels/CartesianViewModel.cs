@@ -64,6 +64,11 @@ namespace BalanceAval.ViewModels
   
         public ObservableCollection<ISeries> Series { get; set; }
 
+        public void ResetData()
+        {
+            _observableValues.Clear();
+        }
+
         public DrawMarginFrame DrawMarginFrame => new DrawMarginFrame
         {
             Fill = new SolidColorPaint(new SKColor(220, 220, 220)),

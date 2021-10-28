@@ -80,8 +80,10 @@ namespace BalanceAval.ViewModels
                     Errors.Clear();
                     StartEnabled = false;
                     StopEnabled = true;
+                    ClearCartesians();
                     StartSlot();
                     _nidaq.Start();
+                    
                 })
                 .Permit(NidaqTriggers.Stop, NidaqStates.Stopped)
                 .Permit(NidaqTriggers.Error, NidaqStates.Stopped);
@@ -94,6 +96,14 @@ namespace BalanceAval.ViewModels
                     DisplayLastSlot();
                 })
                 .Permit(NidaqTriggers.Start, NidaqStates.Running);
+        }
+
+        private void ClearCartesians()
+        {
+            foreach (var cartesianViewModel in CartesianViewModels)
+            {
+                cartesianViewModel.ResetData();
+            }
         }
 
 
@@ -247,7 +257,7 @@ namespace BalanceAval.ViewModels
             set => this.RaiseAndSetIfChanged(ref _copY, value);
         }
 
-        private async void CopCalc(IEnumerable<MeasurementRow> rows)
+        private  void CopCalc(IEnumerable<MeasurementRow> rows)
         {
             var f = rows.First();
             if(f == null) return;

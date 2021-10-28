@@ -55,7 +55,7 @@ namespace BalanceAval.Service
 
         static ReadNidaq()
         {
-            Channels = new[] { "Z1", "Z4", "Z2", "Z3", "Y", "X2", "X1" }
+            Channels = new[] { "Z1", "Z2", "Z3", "Z4", "X2", "X1", "Y" }
                 .Select((n, i) => new KeyValuePair<string, string>("Dev1/ai" + (i + 1), n))
                 .ToDictionary(x => x.Key, x => x.Value); ;
         }
@@ -79,6 +79,9 @@ namespace BalanceAval.Service
                     // Use SynchronizeCallbacks to specify that the object 
                     SynchronizeCallbacks = true
                 };
+
+                DigitalSingleChannelReader digitalReader = new(running.Stream);
+                
 
                 running.Timing.ConfigureSampleClock("", Frequency, SampleClockActiveEdge.Rising,
                                   SampleQuantityMode.ContinuousSamples, Buffersize);
