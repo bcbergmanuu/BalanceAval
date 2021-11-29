@@ -33,7 +33,9 @@ namespace BalanceAval.ViewModels
                     GeometrySize = 0,
                     DataPadding = new LvcPoint(0,0),
                     DataLabelsSize = 10,
-                }
+                    ScalesXAt = 0,
+
+                },
             };
             YAxes = new List<Axis>
             {
@@ -43,6 +45,8 @@ namespace BalanceAval.ViewModels
                     Labeler = d => (d * ReadNidaq.MultiplicationFactor).ToString("N") + "kg",
                     TextSize = 10,
                     NameTextSize = 10,
+                    MinLimit = 0,
+                    MaxLimit = 4
                 }
             };
 

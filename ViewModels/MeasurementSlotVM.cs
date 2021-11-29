@@ -34,12 +34,12 @@ namespace BalanceAval.ViewModels
     {
         private readonly MeasurementSlot _slot;
         private bool _isBusy;
-        private string _content;
+        private string _content = "Save";
 
         public MeasurementSlotVM(MeasurementSlot slot)
         {
             _slot = slot;
-            Time = _slot.Time.ToString("yyyy-dd-M--HH-mm-ss") + ".csv";
+            FileName = _slot.Time.ToString("yyyy-dd-M--HH-mm-ss");
             SetContent();
         }
 
@@ -52,7 +52,11 @@ namespace BalanceAval.ViewModels
             }
 
             else
+            {
                 Content = "Save";
+                IsBusy = false;
+            }
+                
         }
 
         public ICommand Save => new Command(WriteToFile);
@@ -70,7 +74,8 @@ namespace BalanceAval.ViewModels
             }
         }
 
-        public string SavedFileName => Path.Combine(Program.UserPath, Time);
+        private string Extension = ".csv";
+        public string SavedFileName => Path.Combine(Program.UserPath, FileName + Extension);
 
         public async void WriteToFile(object window)
         {
@@ -80,16 +85,20 @@ namespace BalanceAval.ViewModels
                 await using var writer = new StreamWriter(SavedFileName);
                 await using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
                 await csv.WriteRecordsAsync(GetData());
-                SetContent();
+
             }
             catch (Exception e)
             {
-                MainWindowViewModel.Errors.Add(new ErrorModel() { Message = e.Message });
+                MainWindowViewModel.Errors.Add(new ErrorModel() {Message = e.Message});
+            }
+            finally
+            {
+                SetContent();
             }
         }
 
 
-        public string Time { get; }
+        public string FileName { get; set; }
 
         public bool IsBusy
         {

@@ -41,9 +41,4 @@
       <HintPath>..\..\..\Program Files (x86)\National Instruments\MeasurementStudioVS2012\DotNET\Assemblies\Current\NationalInstruments.DAQmx.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Update="Views\Cartesiangraph.axaml.cs">
-      <DependentUpon>Cartesiangraph.axaml</DependentUpon>
-    </Compile>
-  </ItemGroup>
 </Project>

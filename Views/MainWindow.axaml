@@ -17,7 +17,7 @@
 
 	<Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="Auto,Auto">
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
+		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
 			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
 			<Button Command="{Binding Stop}" IsEnabled="{Binding StopEnabled}">Stop</Button>
 
@@ -75,18 +75,24 @@
 						<DataTemplate>
 							<StackPanel Orientation="Horizontal">
 								<Button Command="{Binding Save}" IsEnabled="{Binding !IsBusy}" Content="{Binding Content}" ></Button>
-								<TextBlock Margin="10,0,0,0" Text="{Binding Time}"></TextBlock>
+								<TextBox Margin="10,0,0,0" Text="{Binding FileName}" IsEnabled="{Binding !IsBusy}" />
 							</StackPanel>
-                        </DataTemplate>
+						</DataTemplate>
 					</ItemsControl.ItemTemplate>
 				</ItemsControl>
 			</StackPanel>
 		</ScrollViewer>
-		<Border Grid.Row="1" Grid.Column="1" BorderBrush="Black" BorderThickness="1" Margin="10"  >
-            <Canvas Width="330" Height="150" Background="LightBlue">
-                <Rectangle Height="7" Width="7" Fill="Black" Canvas.Top="{Binding CopY}" Canvas.Left="{Binding CopX}"></Rectangle>
-            </Canvas>
-		</Border>
-    </Grid>
+		<DockPanel Grid.Row="1" Grid.Column="1" >
+			<TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" >Left</TextBlock>
+            <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" >Top</TextBlock>
+			<TextBlock DockPanel.Dock="Right" VerticalAlignment="Center">Right</TextBlock>
+			<TextBlock DockPanel.Dock="Bottom" HorizontalAlignment="Center">Bottom</TextBlock>
+			<Border BorderBrush="Black" BorderThickness="1" Margin="10"  >
+				<Canvas Width="330" Height="150" Background="LightBlue">
+					<Rectangle Height="7" Width="7" Fill="Black" Canvas.Top="{Binding CopY}" Canvas.Left="{Binding CopX}"></Rectangle>
+				</Canvas>
+			</Border>
+		</DockPanel>
+	</Grid>
 
 </Window>
