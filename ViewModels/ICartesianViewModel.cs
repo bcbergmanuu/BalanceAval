@@ -13,11 +13,12 @@ namespace BalanceAval.ViewModels
 
         public void Update(IEnumerable<double> data);
         public string ChannelName { get; }
-
+        public string LastItem { get; }
         public void ResetData();
         public DrawMarginFrame DrawMarginFrame { get; }
         public IEnumerable<ICartesianAxis> XAxes { get; }
         public IEnumerable<ICartesianAxis> YAxes { get; }
 
+        public string SensorName { get; }
     }
 }

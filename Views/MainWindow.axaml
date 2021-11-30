@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
         xmlns:views="clr-namespace:BalanceAval.Views"
-        SizeToContent="WidthAndHeight"
+        Width="1100" Height="800"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="BalanceAval.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
@@ -15,7 +15,7 @@
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
-	<Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="Auto,Auto">
+	<Grid RowDefinitions="Auto,*,*" ColumnDefinitions="Auto,Auto">
 
 		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
 			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
@@ -37,7 +37,7 @@
 			</ItemsControl>
 		</StackPanel>
 
-		<ScrollViewer Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" MaxHeight="700" VerticalScrollBarVisibility="Visible" Margin="10">
+		<ScrollViewer Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" VerticalScrollBarVisibility="Visible" Margin="10">
 			<ItemsControl Items="{Binding CartesianViewModels }" Margin="10" >
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>
@@ -47,7 +47,9 @@
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
 						<StackPanel Orientation="Horizontal">
-							<CheckBox Name="Box" Content="{Binding ChannelName}" IsChecked="True"></CheckBox>
+							<CheckBox Width="70" FontSize="20" Name="Box" Content="{Binding ChannelName}" IsChecked="True" />
+                            <TextBlock Width="70" Margin="5" FontSize="20" Text="{Binding LastItem}" IsVisible="{Binding !#Box.IsChecked}" ></TextBlock>
+                            <TextBlock Margin="5" FontSize="20" Text="{Binding SensorName}" IsVisible="{Binding !#Box.IsChecked}"></TextBlock>
 							<lvc:CartesianChart Height="200" Width="600"
                                                 Series="{Binding Series}"
                                                 DrawMarginFrame="{Binding DrawMarginFrame}"
@@ -59,7 +61,8 @@
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
-		<ScrollViewer Grid.Row="2" Grid.Column="1" MaxHeight="300" VerticalAlignment="Top" HorizontalScrollBarVisibility="Visible" Margin="10">
+		<Grid Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" RowDefinitions="Auto,*">
+            <ScrollViewer Grid.Row="1" VerticalAlignment="Top" HorizontalScrollBarVisibility="Visible" Margin="10">
 			<StackPanel Orientation="Vertical" Margin="10">
 
 				<TextBlock Text="{Binding Folder}" Margin="8,0,0,0"></TextBlock>
@@ -82,7 +85,7 @@
 				</ItemsControl>
 			</StackPanel>
 		</ScrollViewer>
-		<DockPanel Grid.Row="1" Grid.Column="1" >
+		<DockPanel Grid.Row="0" Width="400" Height="200" >
 			<TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" >Left</TextBlock>
             <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" >Top</TextBlock>
 			<TextBlock DockPanel.Dock="Right" VerticalAlignment="Center">Right</TextBlock>
@@ -93,6 +96,7 @@
 				</Canvas>
 			</Border>
 		</DockPanel>
+        </Grid>
 	</Grid>
 
 </Window>

@@ -8,14 +8,27 @@ using LiveChartsCore.Drawing;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using ReactiveUI;
 using SkiaSharp;
 
 namespace BalanceAval.ViewModels
 {
-    public class CartesianViewModel : ICartesianViewModel
+    public class CartesianViewModel : ViewModelBase, ICartesianViewModel
     {
         private int _index = 0;
         private readonly ObservableCollection<ObservablePoint> _observableValues;
+        private string _lastItem;
+
+        private Dictionary<string, string> _sensornameLookup = new()
+        {
+            {"Z1", "Fz Sensor 1 (front left"},
+            {"Z2", "Fz Sensor 2 (front right)"},
+            { "Z3", "Fz Sensor 3 (back left)" },
+            { "Z4", "Fz Sensor 4 (back right)" },
+            { "X1", "Fx Sensor 1,3 (anterior-posterior, left)" },
+            { "X2", "Fx Sensor 2,4 (anterior-posterior, right)" },
+            { "Y", "Fy (mediolateral)" },
+        };
 
         public CartesianViewModel(string channel)
         {
@@ -54,7 +67,7 @@ namespace BalanceAval.ViewModels
             {
                 new Axis // the "units" and "tens" series will be scaled on this axis
                 {
-                    Name = "Channel " + channel,
+                    Name = _sensornameLookup[channel],
                     LabelsPaint = new SolidColorPaint(new SKColor(25, 70, 110)),
                     TextSize = 10,
                     NameTextSize = 10,
@@ -82,6 +95,8 @@ namespace BalanceAval.ViewModels
         public IEnumerable<ICartesianAxis> XAxes { get; }
         public IEnumerable<ICartesianAxis> YAxes { get; }
 
+        public string SensorName => _sensornameLookup[ChannelName];
+
         private void RemoveLastSeries()
         {
             if (_observableValues.Count < 20) return;
@@ -89,9 +104,17 @@ namespace BalanceAval.ViewModels
             _observableValues.RemoveAt(0);
         }
 
+        public string LastItem
+        {
+            get => _lastItem;
+            set => this.RaiseAndSetIfChanged(ref _lastItem, value);
+        }
+
         public void Update(IEnumerable<double> data)
         {
-            _observableValues.Add(new ObservablePoint { X = _index++, Y = data.First() });
+            var yValue = data.Last();
+            _observableValues.Add(new ObservablePoint { X = _index++, Y = yValue });
+            LastItem = (yValue * ReadNidaq.MultiplicationFactor).ToString("N");
             RemoveLastSeries();
         }
 
