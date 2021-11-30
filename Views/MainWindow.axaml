@@ -20,6 +20,7 @@
 		<StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Left" Margin="10">
 			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
 			<Button Command="{Binding Stop}" IsEnabled="{Binding StopEnabled}">Stop</Button>
+            <Button Command="{Binding BtnCalibrate}" IsEnabled="{Binding CalibrateEnabled}">Calibrate</Button>
 
 			<ItemsControl Items="{x:Static vm:MainWindowViewModel.Errors}" >
 				<ItemsControl.ItemsPanel>
@@ -61,7 +62,7 @@
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</ScrollViewer>
-		<Grid Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" RowDefinitions="Auto,*">
+		<Grid Grid.Row="1" Grid.Column="1" Grid.RowSpan="2" RowDefinitions="Auto,Auto,*">
             <ScrollViewer Grid.Row="1" VerticalAlignment="Top" HorizontalScrollBarVisibility="Visible" Margin="10">
 			<StackPanel Orientation="Vertical" Margin="10">
 
@@ -90,13 +91,19 @@
             <TextBlock DockPanel.Dock="Top" HorizontalAlignment="Center" >Top</TextBlock>
 			<TextBlock DockPanel.Dock="Right" VerticalAlignment="Center">Right</TextBlock>
 			<TextBlock DockPanel.Dock="Bottom" HorizontalAlignment="Center">Bottom</TextBlock>
-			<Border BorderBrush="Black" BorderThickness="1" Margin="10"  >
+            <Border BorderBrush="Black" BorderThickness="1" Margin="10"  >
 				<Canvas Width="330" Height="150" Background="LightBlue">
 					<Rectangle Height="7" Width="7" Fill="Black" Canvas.Top="{Binding CopY}" Canvas.Left="{Binding CopX}"></Rectangle>
 				</Canvas>
 			</Border>
 		</DockPanel>
-        </Grid>
+			<StackPanel Grid.Row="1">
+                <TextBlock Text="{Binding Copdisplay}"></TextBlock>
+			
+			</StackPanel>
+
+
+		</Grid>
 	</Grid>
 
 </Window>

@@ -19,10 +19,10 @@ namespace BalanceAval.ViewModels
         private readonly ObservableCollection<ObservablePoint> _observableValues;
         private string _lastItem;
 
-        private Dictionary<string, string> _sensornameLookup = new()
+        private static readonly Dictionary<string, string> SensornameLookup = new()
         {
-            {"Z1", "Fz Sensor 1 (front left"},
-            {"Z2", "Fz Sensor 2 (front right)"},
+            { "Z1", "Fz Sensor 1 (front left" },
+            { "Z2", "Fz Sensor 2 (front right)" },
             { "Z3", "Fz Sensor 3 (back left)" },
             { "Z4", "Fz Sensor 4 (back right)" },
             { "X1", "Fx Sensor 1,3 (anterior-posterior, left)" },
@@ -67,7 +67,7 @@ namespace BalanceAval.ViewModels
             {
                 new Axis // the "units" and "tens" series will be scaled on this axis
                 {
-                    Name = _sensornameLookup[channel],
+                    Name = SensornameLookup[channel],
                     LabelsPaint = new SolidColorPaint(new SKColor(25, 70, 110)),
                     TextSize = 10,
                     NameTextSize = 10,
@@ -76,9 +76,9 @@ namespace BalanceAval.ViewModels
             };
         }
 
-     
 
-  
+
+
         public ObservableCollection<ISeries> Series { get; set; }
 
         public void ResetData()
@@ -95,7 +95,7 @@ namespace BalanceAval.ViewModels
         public IEnumerable<ICartesianAxis> XAxes { get; }
         public IEnumerable<ICartesianAxis> YAxes { get; }
 
-        public string SensorName => _sensornameLookup[ChannelName];
+        public string SensorName => SensornameLookup[ChannelName];
 
         private void RemoveLastSeries()
         {
