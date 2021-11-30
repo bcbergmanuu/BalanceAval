@@ -18,7 +18,7 @@ namespace BalanceAval.ViewModels
         public ObservableCollection<ICartesianViewModel> CartesianViewModels { get; set; }
 
 
-
+        public string Copdisplay { get; }
 
         public ICommand Start { get; }
 

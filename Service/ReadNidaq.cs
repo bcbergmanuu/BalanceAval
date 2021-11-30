@@ -27,20 +27,24 @@ namespace BalanceAval.Service
         {
             Start,
             Stop,
+            Calibrate,
+            Calibrated
         }
         public enum NidaqStates
         {
             Running,
             Stopped,
+            Calibrating
         }
 
         public ReadNidaq()
         {
+
             _stateMachine.Configure(NidaqStates.Running).OnEntry(() =>
                 {
                     _stop = false;
 
-                    StartStream();
+                    StartStream(false);
                 })
                 .Permit(NidaqTriggers.Stop, NidaqStates.Stopped);
 
@@ -49,7 +53,13 @@ namespace BalanceAval.Service
                 {
                     _stop = true;
                 })
-                .Permit(NidaqTriggers.Start, NidaqStates.Running);
+                .Permit(NidaqTriggers.Start, NidaqStates.Running)
+                .Permit(NidaqTriggers.Calibrate, NidaqStates.Calibrating);
+            _stateMachine.Configure(NidaqStates.Calibrating).OnEntry(() =>
+            {
+                StartStream(true);
+            }).Permit(NidaqTriggers.Calibrated, NidaqStates.Stopped)
+                .Permit(NidaqTriggers.Stop, NidaqStates.Stopped);
         }
 
 
@@ -58,14 +68,19 @@ namespace BalanceAval.Service
             Channels = new[] { "Z1", "Z2", "Z3", "Z4", "X2", "X1", "Y" }
                 .Select((n, i) => new KeyValuePair<string, string>("Dev1/ai" + (i + 1), n))
                 .ToDictionary(x => x.Key, x => x.Value); ;
+
+            _calibration = new double[Channels.Count];
         }
+
+
+        public event EventHandler CalibrationFinished;
 
         public async void Start()
         {
             await _stateMachine.FireAsync(NidaqTriggers.Start);
         }
 
-        private async void StartStream()
+        private async void StartStream(bool calibrate)
         {
             // Create a new task
             try
@@ -80,13 +95,18 @@ namespace BalanceAval.Service
                     SynchronizeCallbacks = true
                 };
 
-                DigitalSingleChannelReader digitalReader = new(running.Stream);
-                
 
                 running.Timing.ConfigureSampleClock("", Frequency, SampleClockActiveEdge.Rising,
                                   SampleQuantityMode.ContinuousSamples, Buffersize);
 
+                running.Control(TaskAction.Verify);
+
                 var data = await BeginRead(analogInReader, running);
+                if (calibrate)
+                {
+                    CalibrateFinished(SamplesToModel(data));
+                    return;
+                }
                 OnDataReceived(SamplesToModel(data));
 
                 while (true)
@@ -98,19 +118,19 @@ namespace BalanceAval.Service
                     }
 
                     data = await ContinueRead(data, analogInReader, running);
+
                     OnDataReceived(SamplesToModel(data));
                 }
 
                 // Verify the Task
 
-                running.Control(TaskAction.Verify);
+
             }
             catch (DaqException e)
             {
                 OnError(e.Message);
             }
         }
-
 
         private static Task<AnalogWaveform<double>[]> ContinueRead(AnalogWaveform<double>[] data, AnalogMultiChannelReader analogInReader, NationalInstruments.DAQmx.Task running)
         {
@@ -198,10 +218,30 @@ namespace BalanceAval.Service
 
         public event EventHandler<string> Error;
 
-        public event EventHandler<List<AnalogChannel>> DataReceived;
+        private static double[] _calibration;
+        public async void CalibrateAsync()
+        {
+            ResetCalibration();
+            await _stateMachine.FireAsync(NidaqTriggers.Calibrate);
+        }
+
+        private async void CalibrateFinished(IEnumerable<AnalogChannel> channels)
+        {
+            IEnumerable<double> averages = channels.Select(analogChannel => analogChannel.Values.Average());
+            _calibration = averages.ToArray();
+            await _stateMachine.FireAsync(NidaqTriggers.Calibrated);
+            OnCalibrationFinished();
+        }
+
+        private static void ResetCalibration()
+        {
+            _calibration = Channels.Select(n => 0.0).ToArray();
+        }
+
+        public event EventHandler<IEnumerable<AnalogChannel>> DataReceived;
 
 
-        private static List<AnalogChannel> SamplesToModel(IEnumerable<AnalogWaveform<double>> samples)
+        private static IEnumerable<AnalogChannel> SamplesToModel(IEnumerable<AnalogWaveform<double>> samples)
         {
             var channels = new List<AnalogChannel>();
             foreach (var channelName in samples)
@@ -220,17 +260,33 @@ namespace BalanceAval.Service
                 }
             }
 
-            return channels;
+            return channels.Select((i,n)=> AdjuctCalibrate(n,i));
         }
 
-        protected virtual void OnDataReceived(List<AnalogChannel> e)
+        private static AnalogChannel AdjuctCalibrate(int index, AnalogChannel channel)
+        {
+            return new AnalogChannel
+            {
+                Values = channel.Values.Select(n => n - _calibration[index]).ToList(),
+                NiInput = channel.NiInput
+            };
+        }
+
+
+        protected virtual void OnDataReceived(IEnumerable<AnalogChannel> e)
         {
             DataReceived?.Invoke(this, e);
         }
 
         protected virtual void OnError(string e)
         {
+            _stateMachine.Fire(NidaqTriggers.Stop);
             Error?.Invoke(this, e);
+        }
+
+        protected virtual void OnCalibrationFinished()
+        {
+            CalibrationFinished?.Invoke(this, EventArgs.Empty);
         }
     }
 }

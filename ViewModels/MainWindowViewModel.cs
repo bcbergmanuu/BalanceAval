@@ -10,6 +10,7 @@ using System.Windows.Input;
 using Avalonia.Threading;
 using BalanceAval.Models;
 using BalanceAval.Service;
+using DynamicData;
 using NationalInstruments.Restricted;
 using ReactiveUI;
 using Stateless;
@@ -26,9 +27,6 @@ namespace BalanceAval.ViewModels
         }
         public MainWindowViewModel(IReadNidaq nidaq)
         {
-
-
-
             ConfigureStateMachine();
             _nidaq = nidaq;
 
@@ -40,11 +38,11 @@ namespace BalanceAval.ViewModels
                 CartesianViewModels.Add(new CartesianViewModel(channelName.Value));
             }
             nidaq.Error += NidaqOnError;
-            nidaq.DataReceived += NidaqOnDataReceived;
+            _nidaq.DataReceived += NidaqOnDataReceived;
+            _nidaq.CalibrationFinished += (sender, args) => _stateMachine.Fire(NidaqTriggers.CaibratehasFinished);
+
             FillSlots();
         }
-
-
 
         private void NidaqOnError(object? sender, string e)
         {
@@ -62,12 +60,14 @@ namespace BalanceAval.ViewModels
             Start,
             Stop,
             Error,
+            Calibrate,
+            CaibratehasFinished
         }
         public enum NidaqStates
         {
             Running,
             Stopped,
-
+            Calibrating,
         }
 
         private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new(NidaqStates.Stopped);
@@ -78,24 +78,43 @@ namespace BalanceAval.ViewModels
             _stateMachine.Configure(NidaqStates.Running).OnEntry(() =>
                 {
                     Errors.Clear();
+
                     StartEnabled = false;
                     StopEnabled = true;
+                    CalibrateEnabled = false;
                     ClearCartesians();
                     StartSlot();
                     _nidaq.Start();
-                    
+
                 })
                 .Permit(NidaqTriggers.Stop, NidaqStates.Stopped)
                 .Permit(NidaqTriggers.Error, NidaqStates.Stopped);
 
             _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
                 {
+                    _nidaq.Stop();
+
                     StartEnabled = true;
                     StopEnabled = false;
-                    _nidaq.Stop();
+                    CalibrateEnabled = true;
+
                     DisplayLastSlot();
                 })
-                .Permit(NidaqTriggers.Start, NidaqStates.Running);
+                .Permit(NidaqTriggers.Start, NidaqStates.Running)
+                .Permit(NidaqTriggers.Calibrate, NidaqStates.Calibrating);
+
+            _stateMachine.Configure(NidaqStates.Calibrating).OnEntry(() =>
+            {
+                Errors.Clear();
+                StartEnabled = false;
+                CalibrateEnabled = false;
+                StopEnabled = false;
+
+                _nidaq.CalibrateAsync();
+            })
+                .Permit(NidaqTriggers.Error, NidaqStates.Stopped)
+                .Permit(NidaqTriggers.CaibratehasFinished, NidaqStates.Stopped);
+
         }
 
         private void ClearCartesians()
@@ -107,16 +126,17 @@ namespace BalanceAval.ViewModels
         }
 
 
-        private void NidaqOnDataReceived(object? sender, List<AnalogChannel> e)
+        private void NidaqOnDataReceived(object? sender, IEnumerable<AnalogChannel> e)
         {
             Dispatcher.UIThread.InvokeAsync(() => Nidaq_DataReceived(e));
         }
 
-        private void Nidaq_DataReceived(IReadOnlyList<AnalogChannel> e)
+        private void Nidaq_DataReceived(IEnumerable<AnalogChannel> e)
         {
             UpdateCartesians(e);
-            StoreDatabase(ToDataRows(e));
-            CopCalc(ToDataRows(e));
+            var rows = ToDataRows(e);
+            StoreDatabase(rows);
+            CopCalc(rows);
         }
 
         private void UpdateCartesians(IEnumerable<AnalogChannel> e)
@@ -135,11 +155,19 @@ namespace BalanceAval.ViewModels
         private bool _stopEnabled;
         private double _copX;
         private double _copY;
+        private bool _calibrateEnabled = true;
+        private string _copdisplay;
 
         public bool StopEnabled
         {
             get => _stopEnabled;
             set => this.RaiseAndSetIfChanged(ref _stopEnabled, value);
+        }
+
+        public bool CalibrateEnabled
+        {
+            get => _calibrateEnabled;
+            set => this.RaiseAndSetIfChanged(ref _calibrateEnabled, value);
         }
 
         public bool StartEnabled
@@ -148,8 +176,9 @@ namespace BalanceAval.ViewModels
             set => this.RaiseAndSetIfChanged(ref _startEnabled, value);
         }
 
-        public static IEnumerable<MeasurementRow> ToDataRows(IReadOnlyList<AnalogChannel> data)
+        public static IEnumerable<MeasurementRow> ToDataRows(IEnumerable<AnalogChannel> data1)
         {
+            var data = data1.ToArray();
             var orderofChannels = data.Select(s => s.NiInput).ToArray();
             var rows = new List<MeasurementRow>();
             for (var i = 0; i < data.First().Values.Count; i++)
@@ -203,7 +232,7 @@ namespace BalanceAval.ViewModels
             await using var dbContext = new MyDbContext();
             await dbContext.Database.EnsureCreatedAsync();
             var slots = dbContext.MeasurementSlots.OrderByDescending(i => i.Id).Select(n => new MeasurementSlotVM(n));
-            Slots.AddRange(slots);
+            EnumerableExtensions.AddRange(Slots, slots);
         }
 
         public ObservableCollection<MeasurementSlotVM> Slots { get; set; }
@@ -223,6 +252,11 @@ namespace BalanceAval.ViewModels
 
         public ICommand Start => new Command(StartMeasure);
         public ICommand Stop => new Command(StopMeasure);
+
+        public ICommand BtnCalibrate => new Command((s) =>
+        {
+            _stateMachine.Fire(NidaqTriggers.Calibrate);
+        });
 
         public ICommand Browse
         {
@@ -245,6 +279,12 @@ namespace BalanceAval.ViewModels
         public string Folder => Program.UserPath;
 
 
+        public string Copdisplay
+        {
+            get => _copdisplay;
+            set => this.RaiseAndSetIfChanged(ref _copdisplay, value);
+        }
+
         public double CopX
         {
             get => _copX;
@@ -257,14 +297,15 @@ namespace BalanceAval.ViewModels
             set => this.RaiseAndSetIfChanged(ref _copY, value);
         }
 
-        private  void CopCalc(IEnumerable<MeasurementRow> rows)
+        private void CopCalc(IEnumerable<MeasurementRow> rows)
         {
             var f = rows.First();
-            if(f == null) return;
+            if (f == null) return;
             var x = (f.Z2 + f.Z3) - (f.Z1 + f.Z4);
-            var y = (f.Z3 + f.Z4) - (f.Z1 + f.Z2); 
-            CopX = x  + 165 ;
-            CopY = y*.5 + 75; 
+            var y = (f.Z3 + f.Z4) - (f.Z1 + f.Z2);
+            CopX = x + 165;
+            CopY = y * .5 + 75;
+            Copdisplay = $"X, Y = {x:N} ,  {(y*.5):N}";
         }
     }
 
