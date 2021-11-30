@@ -58,7 +58,7 @@ namespace BalanceAval.ViewModels
                     Labeler = d => (d * ReadNidaq.MultiplicationFactor).ToString("N") + "kg",
                     TextSize = 10,
                     NameTextSize = 10,
-                    MinLimit = 0,
+                    MinLimit = -.2,
                     MaxLimit = 4
                 }
             };
