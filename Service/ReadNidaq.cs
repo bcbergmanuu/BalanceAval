@@ -22,7 +22,7 @@ namespace BalanceAval.Service
         private volatile bool _stop = false;
 
         private readonly StateMachine<NidaqStates, NidaqTriggers> _stateMachine = new(NidaqStates.Stopped);
-        private enum NidaqTriggers
+     +-   private enum NidaqTriggers
         {
             Start,
             Stop,
