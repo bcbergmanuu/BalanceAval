@@ -39,7 +39,7 @@ namespace BalanceAval.ViewModels
         public MeasurementSlotVM(MeasurementSlot slot)
         {
             _slot = slot;
-            FileName = _slot.Time.ToString("yyyy-dd-M--HH-mm-ss");
+            FileName = _slot.Time.ToString("yyyy-dd-MM-HH-mm-ss");
             SetContent();
         }
 
