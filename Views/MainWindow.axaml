@@ -37,7 +37,7 @@
 				</ItemsControl.ItemTemplate>
 			</ItemsControl>
 		</StackPanel>
-
+		<TextBlock Text="{Binding Totaldisplay}" FontSize="20"></TextBlock>
 		<ScrollViewer Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" VerticalScrollBarVisibility="Visible" Margin="10">
 			<ItemsControl Items="{Binding CartesianViewModels }" Margin="10" >
 				<ItemsControl.ItemsPanel>
@@ -99,7 +99,7 @@
 		</DockPanel>
 			<StackPanel Grid.Row="1">
                 <TextBlock Text="{Binding Copdisplay}"></TextBlock>
-			
+				
 			</StackPanel>
 
 

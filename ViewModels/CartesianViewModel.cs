@@ -18,8 +18,8 @@ namespace BalanceAval.ViewModels
         private int _index = 0;
         private readonly ObservableCollection<ObservablePoint> _observableValues;
         private string _lastItem;
-        const double max = 4;
-        const double min = -0.2;
+        const double max = 100;
+        const double min = -5;
 
         private static readonly Dictionary<string, string> SensornameLookup = new()
         {

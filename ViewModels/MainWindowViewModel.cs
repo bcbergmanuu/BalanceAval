@@ -163,6 +163,20 @@ namespace BalanceAval.ViewModels
             var rows = ToDataRows(e);
             StoreDatabase(rows);
             CopCalc(rows);
+            Totaldisplay = CalcTotal(rows).ToString("N");
+        }
+
+        private string _totaldisplay;
+        public string Totaldisplay
+        {
+            get => _totaldisplay;
+            set => this.RaiseAndSetIfChanged(ref _totaldisplay, value);
+        }
+
+        private double CalcTotal(IEnumerable<MeasurementRow> rows)
+        {
+            var row = rows.FirstOrDefault();
+            return row.Z1 + row.Z2 + row.Z3 + row.Z4;
         }
 
         private void UpdateCartesians(IEnumerable<AnalogChannel> e)

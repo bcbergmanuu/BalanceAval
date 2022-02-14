@@ -13,7 +13,7 @@ namespace BalanceAval.Service
 {
     public class ReadNidaq : IReadNidaq
     {
-        public const double MultiplicationFactor = 25.00;
+        //public const double MultiplicationFactor = 25.00;
         public const int Buffersize = 10;
         public const double Frequency = 100;
 
@@ -65,13 +65,21 @@ namespace BalanceAval.Service
         {
             Channels = new Dictionary<string, string>
             {
+                //{"Dev1/ai1", "Z1" },
+                //{"Dev1/ai2", "Z2" },
+                //{"Dev1/ai3", "Z3" },
+                //{"Dev1/ai4", "Z4" },
+                //{"Dev1/ai5", "X1" },
+                //{"Dev1/ai6", "X2" },                
+                //{"Dev1/ai7", "Y" },
+
                 {"Dev1/ai2", "Z1" },
                 {"Dev1/ai1", "Z2" },
                 {"Dev1/ai4", "Z3" },
                 {"Dev1/ai3", "Z4" },
                 {"Dev1/ai6", "X1" },
-                {"Dev1/ai5", "X2" },                
-                {"Dev1/ai7", "Y" },                
+                {"Dev1/ai5", "X2" },
+                {"Dev1/ai7", "Y" },
             };
 
             //Channels = new[] { "Z1", "Z2", "Z3", "Z4", "X2", "X1", "Y" }
@@ -260,7 +268,7 @@ namespace BalanceAval.Service
 
                 foreach (var analogWaveformSample in channelName.Samples)
                 {
-                    channel.Values.Add(analogWaveformSample.Value * MultiplicationFactor);
+                    channel.Values.Add(analogWaveformSample.Value);
                 }
             }
 

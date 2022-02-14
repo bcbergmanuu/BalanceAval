@@ -129,14 +129,14 @@ namespace BalanceAval.Service
                     }
 
                     var results = values.Select(s => (25167408 - s))
-                        .Select(n => ((float)n) / 281).ToArray();
+                        .Select(n => ((float)n) / 140).ToArray();
 
                     CSVFormat entry = new()
                     {
                         Z1 = results[0],
-                        Z2 = results[1],
+                        Z2 = results[3],
                         Z3 = results[2],
-                        Z4 = results[3],
+                        Z4 = results[1],
                         X1 = 0,
                         X2 = 0,
                         Y = 0,
@@ -182,8 +182,30 @@ namespace BalanceAval.Service
                 }
                 channels.Add(channel);
             }
-
+            foreach (var channel in channels) RemoveSpikes(channel);
             return channels.Select((i, n) => ReadNidaq.AdjuctCalibrate(n, i, _calibration));
+        }
+
+        private static void RemoveSpikes(AnalogChannel channel)
+        {
+            double previous = 179001;
+            for (int x = 0; x < 4; x++)
+            {
+                bool repeat = false;
+                for (int i = 0; i < channel.Values.Count; i++)
+                {
+                    if (channel.Values[i] > 179000)
+                    {
+                        if (previous < 179000) channel.Values[i] = previous;
+                        else repeat = true;
+                    }
+                    else
+                    {
+                        previous = channel.Values[i];
+                    }
+                }
+                if (!repeat) break;
+            }
         }
 
         public event EventHandler<IEnumerable<AnalogChannel>>? DataReceived;
