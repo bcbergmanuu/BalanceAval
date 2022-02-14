@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 
 using Avalonia.Threading;
-using BalanceAval.Models;vf
+using BalanceAval.Models;
 using BalanceAval.Service;
 using DynamicData;
 using NationalInstruments.Restricted;
@@ -32,8 +32,9 @@ namespace BalanceAval.ViewModels
 
         public MainWindowViewModel()
         {
-            _connectionOption = ConnectionOptions[1];
             _nidaq = ConnectFactory();
+            ConnectionOption = ConnectionOptions[1];
+           
             ConfigureStateMachine();
 
             CartesianViewModels = new ObservableCollection<ICartesianViewModel>();
@@ -43,12 +44,28 @@ namespace BalanceAval.ViewModels
             {
                 CartesianViewModels.Add(new CartesianViewModel(channelName.Value));
             }
+          
+            FillSlots();
+        }
 
+        void PrepaireRun()
+        {
+            _nidaq = ConnectFactory();
             _nidaq.Error += NidaqOnError;
             _nidaq.DataReceived += NidaqOnDataReceived;
-            _nidaq.CalibrationFinished += (sender, args) => _stateMachine.Fire(NidaqTriggers.CaibratehasFinished);
+            _nidaq.CalibrationFinished += _nidaq_CalibrationFinished;
+        }
 
-            FillSlots();
+        private void _nidaq_CalibrationFinished(object? sender, EventArgs e)
+        {
+            _stateMachine.Fire(NidaqTriggers.CaibratehasFinished);
+        }
+
+        void StopRun()
+        {
+            _nidaq.Error -= NidaqOnError;
+            _nidaq.DataReceived -= NidaqOnDataReceived;
+            _nidaq.CalibrationFinished -= _nidaq_CalibrationFinished;
         }
 
         private void NidaqOnError(object? sender, string e)
@@ -85,7 +102,7 @@ namespace BalanceAval.ViewModels
             _stateMachine.Configure(NidaqStates.Running).OnEntry(() =>
                 {
                     Errors.Clear();
-
+                   
                     StartEnabled = false;
                     StopEnabled = true;
                     CalibrateEnabled = false;
@@ -100,11 +117,11 @@ namespace BalanceAval.ViewModels
             _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
                 {
                     _nidaq.Stop();
-
+                    
                     StartEnabled = true;
                     StopEnabled = false;
                     CalibrateEnabled = true;
-
+                    
                     DisplayLastSlot();
                 })
                 .Permit(NidaqTriggers.Start, NidaqStates.Running)
@@ -199,7 +216,7 @@ namespace BalanceAval.ViewModels
 
                 for (var j = 0; j < orderofChannels.Length; j++)
                 {
-                    typeof(MeasurementRow).GetProperty(ReadNidaq.Channels[orderofChannels[j]])
+                    typeof(MeasurementRow).GetProperty(orderofChannels[j])
                         .SetValue(instance, data[j].Values[i]);
                 }
 
@@ -322,8 +339,9 @@ namespace BalanceAval.ViewModels
             get => _connectionOption;
             set
             {
+                StopRun();
                 this.RaiseAndSetIfChanged(ref _connectionOption, value);
-                _nidaq = ConnectFactory();
+                PrepaireRun();           
             }
         }
 
