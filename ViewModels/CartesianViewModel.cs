@@ -18,6 +18,8 @@ namespace BalanceAval.ViewModels
         private int _index = 0;
         private readonly ObservableCollection<ObservablePoint> _observableValues;
         private string _lastItem;
+        const double max = 4;
+        const double min = -0.2;
 
         private static readonly Dictionary<string, string> SensornameLookup = new()
         {
@@ -58,8 +60,8 @@ namespace BalanceAval.ViewModels
                     Labeler = d => (d * ReadNidaq.MultiplicationFactor).ToString("N") + "kg",
                     TextSize = 10,
                     NameTextSize = 10,
-                    MinLimit = -.2,
-                    MaxLimit = 4
+                    MinLimit = min,
+                    MaxLimit = max
                 }
             };
 
@@ -112,7 +114,8 @@ namespace BalanceAval.ViewModels
 
         public void Update(IEnumerable<double> data)
         {
-            var yValue = data.Last();
+            var last = data.Last();
+            var yValue = last > max ? max : last < min ? min : last;
             _observableValues.Add(new ObservablePoint { X = _index++, Y = yValue });
             LastItem = (yValue * ReadNidaq.MultiplicationFactor).ToString("N");
             RemoveLastSeries();

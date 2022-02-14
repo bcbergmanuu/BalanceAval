@@ -188,7 +188,7 @@ namespace BalanceAval.ViewModels
                 for (var j = 0; j < orderofChannels.Length; j++)
                 {
                     typeof(MeasurementRow).GetProperty(ReadNidaq.Channels[orderofChannels[j]])
-                        .SetValue(instance, data[j].Values[i] * ReadNidaq.MultiplicationFactor);
+                        .SetValue(instance, data[j].Values[i]);
                 }
 
                 rows.Add(instance);
