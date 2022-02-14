@@ -21,7 +21,7 @@
 			<Button  Command="{Binding Start}" IsEnabled="{Binding StartEnabled}">Start</Button>
 			<Button Command="{Binding Stop}" IsEnabled="{Binding StopEnabled}">Stop</Button>
             <Button Command="{Binding BtnCalibrate}" IsEnabled="{Binding CalibrateEnabled}">Calibrate</Button>
-
+            <ComboBox Items="{Binding ConnectionOptions }" SelectedItem="{Binding Path=ConnectionOption}"></ComboBox>
 			<ItemsControl Items="{x:Static vm:MainWindowViewModel.Errors}" >
 				<ItemsControl.ItemsPanel>
 					<ItemsPanelTemplate>

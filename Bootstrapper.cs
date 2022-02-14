@@ -14,9 +14,7 @@ namespace BalanceAval
             services.Register<IReadNidaq>(() => new ReadNidaq());  // Call services.Register<T> and pass it lambda that creates instance of your service
             
 
-            services.Register<IMainWindowViewModel>(() => new MainWindowViewModel(
-                resolver.GetRequiredService<IReadNidaq>()
-            ));
+            services.Register<IMainWindowViewModel>(() => new MainWindowViewModel());
             
         }
 

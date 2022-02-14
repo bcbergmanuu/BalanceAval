@@ -55,7 +55,7 @@ namespace BalanceAval.ViewModels
                 new Axis // the "units" and "tens" series will be scaled on this axis
                 {
                     LabelsPaint = new SolidColorPaint(new SKColor(25, 118, 210)),
-                    Labeler = d => (d * ReadNidaq.MultiplicationFactor).ToString("N") + "kg",
+                    Labeler = d => (d).ToString("N") + "kg",
                     TextSize = 10,
                     NameTextSize = 10,
                     MinLimit = 0,
@@ -114,7 +114,7 @@ namespace BalanceAval.ViewModels
         {
             var yValue = data.Last();
             _observableValues.Add(new ObservablePoint { X = _index++, Y = yValue });
-            LastItem = (yValue * ReadNidaq.MultiplicationFactor).ToString("N");
+            LastItem = (yValue).ToString("N");
             RemoveLastSeries();
         }
 

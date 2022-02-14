@@ -19,16 +19,22 @@ namespace BalanceAval.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase, IMainWindowViewModel
     {
-        private readonly IReadNidaq _nidaq;
-
+        private IReadNidaq _nidaq;
         static MainWindowViewModel()
         {
             Errors = new ObservableCollection<ErrorModel>();
         }
-        public MainWindowViewModel(IReadNidaq nidaq)
+
+        private IReadNidaq ConnectFactory()
         {
+            return ConnectionOption == ConnectionOptions[0] ? new ReadNidaq() : new ReadSerial();
+        }
+
+        public MainWindowViewModel()
+        {
+            _connectionOption = ConnectionOptions[1];
+            _nidaq = ConnectFactory();
             ConfigureStateMachine();
-            _nidaq = nidaq;
 
             CartesianViewModels = new ObservableCollection<ICartesianViewModel>();
             Slots = new ObservableCollection<MeasurementSlotVM>();
@@ -37,7 +43,8 @@ namespace BalanceAval.ViewModels
             {
                 CartesianViewModels.Add(new CartesianViewModel(channelName.Value));
             }
-            nidaq.Error += NidaqOnError;
+
+            _nidaq.Error += NidaqOnError;
             _nidaq.DataReceived += NidaqOnDataReceived;
             _nidaq.CalibrationFinished += (sender, args) => _stateMachine.Fire(NidaqTriggers.CaibratehasFinished);
 
@@ -101,7 +108,9 @@ namespace BalanceAval.ViewModels
                     DisplayLastSlot();
                 })
                 .Permit(NidaqTriggers.Start, NidaqStates.Running)
-                .Permit(NidaqTriggers.Calibrate, NidaqStates.Calibrating);
+                .Permit(NidaqTriggers.Calibrate, NidaqStates.Calibrating)
+                .Ignore(NidaqTriggers.Stop)
+                .Ignore(NidaqTriggers.Error);
 
             _stateMachine.Configure(NidaqStates.Calibrating).OnEntry(() =>
             {
@@ -141,13 +150,15 @@ namespace BalanceAval.ViewModels
 
         private void UpdateCartesians(IEnumerable<AnalogChannel> e)
         {
-            var join = e.Join(CartesianViewModels,
-                x => ReadNidaq.Channels[x.NiInput],
-                y => y.ChannelName,
-                (nidaq, cartesian) => new { nidaq, cartesian });
-            foreach (var an in join)
+            //var join = e.Join(CartesianViewModels,
+            //    x => ReadNidaq.Channels[x.NiInput],
+            //    y => y.ChannelName,
+            //    (nidaq, cartesian) => new { nidaq, cartesian });
+            foreach (var an in e)
             {
-                an.cartesian.Update(an.nidaq.Values);
+                CartesianViewModels.First(s => s.ChannelName == an.Name).Update(an.Values);
+                
+//                an.cartesian.Update(an.nidaq.Values);
             }
         }
 
@@ -157,6 +168,7 @@ namespace BalanceAval.ViewModels
         private double _copY;
         private bool _calibrateEnabled = true;
         private string _copdisplay;
+        private string _connectionOption;
 
         public bool StopEnabled
         {
@@ -179,7 +191,7 @@ namespace BalanceAval.ViewModels
         public static IEnumerable<MeasurementRow> ToDataRows(IEnumerable<AnalogChannel> data1)
         {
             var data = data1.ToArray();
-            var orderofChannels = data.Select(s => s.NiInput).ToArray();
+            var orderofChannels = data.Select(s => s.Name).ToArray();
             var rows = new List<MeasurementRow>();
             for (var i = 0; i < data.First().Values.Count; i++)
             {
@@ -187,8 +199,8 @@ namespace BalanceAval.ViewModels
 
                 for (var j = 0; j < orderofChannels.Length; j++)
                 {
-                    typeof(MeasurementRow).GetProperty(ReadNidaq.Channels[orderofChannels[j]])
-                        .SetValue(instance, data[j].Values[i] * ReadNidaq.MultiplicationFactor);
+                    typeof(MeasurementRow).GetProperty(orderofChannels[j])
+                        .SetValue(instance, data[j].Values[i]);
                 }
 
                 rows.Add(instance);
@@ -296,6 +308,25 @@ namespace BalanceAval.ViewModels
             get => _copY;
             set => this.RaiseAndSetIfChanged(ref _copY, value);
         }
+
+        private static readonly List<string> _ConnectionOptions = new List<string>
+        {
+            "Nidaq",
+            "Serial",
+        };
+
+        public List<string> ConnectionOptions  => _ConnectionOptions;
+
+        public string ConnectionOption
+        {
+            get => _connectionOption;
+            set
+            {
+                this.RaiseAndSetIfChanged(ref _connectionOption, value);
+                _nidaq = ConnectFactory();
+            }
+        }
+
 
         private void CopCalc(IEnumerable<MeasurementRow> rows)
         {

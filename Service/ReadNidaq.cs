@@ -11,8 +11,6 @@ using Task = System.Threading.Tasks.Task;
 
 namespace BalanceAval.Service
 {
-
-
     public class ReadNidaq : IReadNidaq
     {
         public const double MultiplicationFactor = 25.00;
@@ -52,7 +50,7 @@ namespace BalanceAval.Service
             _stateMachine.Configure(NidaqStates.Stopped).OnEntry(() =>
                 {
                     _stop = true;
-                })
+                }).Ignore(NidaqTriggers.Stop)
                 .Permit(NidaqTriggers.Start, NidaqStates.Running)
                 .Permit(NidaqTriggers.Calibrate, NidaqStates.Calibrating);
             _stateMachine.Configure(NidaqStates.Calibrating).OnEntry(() =>
@@ -206,14 +204,9 @@ namespace BalanceAval.Service
 
         public async void Stop()
         {
-            try
-            {
+         
                 await _stateMachine.FireAsync(NidaqTriggers.Stop);
-            }
-            catch
-            {
-                //suppress this
-            }
+     
         }
 
         public event EventHandler<string> Error;
@@ -241,14 +234,14 @@ namespace BalanceAval.Service
         public event EventHandler<IEnumerable<AnalogChannel>> DataReceived;
 
 
-        private static IEnumerable<AnalogChannel> SamplesToModel(IEnumerable<AnalogWaveform<double>> samples)
+        public static IEnumerable<AnalogChannel> SamplesToModel(IEnumerable<AnalogWaveform<double>> samples)
         {
             var channels = new List<AnalogChannel>();
             foreach (var channelName in samples)
             {
                 var channel = new AnalogChannel()
                 {
-                    NiInput = channelName.ChannelName,
+                    Name = Channels[channelName.ChannelName],
                     Values = new List<double>()
                 };
 
@@ -256,19 +249,19 @@ namespace BalanceAval.Service
 
                 foreach (var analogWaveformSample in channelName.Samples)
                 {
-                    channel.Values.Add(analogWaveformSample.Value);
+                    channel.Values.Add(analogWaveformSample.Value * MultiplicationFactor);
                 }
             }
 
-            return channels.Select((i,n)=> AdjuctCalibrate(n,i));
+            return channels.Select((i,n)=> AdjuctCalibrate(n,i,_calibration));
         }
 
-        private static AnalogChannel AdjuctCalibrate(int index, AnalogChannel channel)
+        public static AnalogChannel AdjuctCalibrate(int index, AnalogChannel channel, double [] cal)
         {
             return new AnalogChannel
             {
-                Values = channel.Values.Select(n => n - _calibration[index]).ToList(),
-                NiInput = channel.NiInput
+                Values = channel.Values.Select(n => n - cal[index]).ToList(),
+                Name = channel.Name
             };
         }
 
