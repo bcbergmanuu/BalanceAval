@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 
 using Avalonia.Threading;
-using BalanceAval.Models;
+using BalanceAval.Models;vf
 using BalanceAval.Service;
 using DynamicData;
 using NationalInstruments.Restricted;
@@ -199,7 +199,7 @@ namespace BalanceAval.ViewModels
 
                 for (var j = 0; j < orderofChannels.Length; j++)
                 {
-                    typeof(MeasurementRow).GetProperty(orderofChannels[j])
+                    typeof(MeasurementRow).GetProperty(ReadNidaq.Channels[orderofChannels[j]])
                         .SetValue(instance, data[j].Values[i]);
                 }
 

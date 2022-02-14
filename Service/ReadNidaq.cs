@@ -63,9 +63,20 @@ namespace BalanceAval.Service
 
         static ReadNidaq()
         {
-            Channels = new[] { "Z1", "Z2", "Z3", "Z4", "X2", "X1", "Y" }
-                .Select((n, i) => new KeyValuePair<string, string>("Dev2/ai" + (i + 1), n))
-                .ToDictionary(x => x.Key, x => x.Value); ;
+            Channels = new Dictionary<string, string>
+            {
+                {"Dev1/ai2", "Z1" },
+                {"Dev1/ai1", "Z2" },
+                {"Dev1/ai4", "Z3" },
+                {"Dev1/ai3", "Z4" },
+                {"Dev1/ai6", "X1" },
+                {"Dev1/ai5", "X2" },                
+                {"Dev1/ai7", "Y" },                
+            };
+
+            //Channels = new[] { "Z1", "Z2", "Z3", "Z4", "X2", "X1", "Y" }
+            //    .Select((n, i) => new KeyValuePair<string, string>("Dev1/ai" + (i + 1), n))
+            //    .ToDictionary(x => x.Key, x => x.Value); ;
 
             _calibration = new double[Channels.Count];
         }
