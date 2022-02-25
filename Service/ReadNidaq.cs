@@ -13,7 +13,7 @@ namespace BalanceAval.Service
 {
     public class ReadNidaq : IReadNidaq
     {
-        //public const double MultiplicationFactor = 25.00;
+        public const double MultiplicationFactor = 25.00;
         public const int Buffersize = 10;
         public const double Frequency = 100;
 
@@ -55,6 +55,7 @@ namespace BalanceAval.Service
                 .Permit(NidaqTriggers.Calibrate, NidaqStates.Calibrating);
             _stateMachine.Configure(NidaqStates.Calibrating).OnEntry(() =>
             {
+                _stop = false;
                 StartStream(true);
             }).Permit(NidaqTriggers.Calibrated, NidaqStates.Stopped)
                 .Permit(NidaqTriggers.Stop, NidaqStates.Stopped);
@@ -99,33 +100,27 @@ namespace BalanceAval.Service
 
         private async void StartStream(bool calibrate)
         {
+            
+            AnalogWaveform<double>[] data = new AnalogWaveform<double>[0];
             // Create a new task
             try
             {
                 var running = await CreateNidaqTask();
-
-
                 AnalogMultiChannelReader analogInReader = new(running.Stream)
                 {
                     // marshals callbacks across threads appropriately.
                     // Use SynchronizeCallbacks to specify that the object 
                     SynchronizeCallbacks = true
-                };
-
+                };                                         
 
                 running.Timing.ConfigureSampleClock("", Frequency, SampleClockActiveEdge.Rising,
-                                  SampleQuantityMode.ContinuousSamples, Buffersize);
+                                    SampleQuantityMode.ContinuousSamples, Buffersize);
 
                 running.Control(TaskAction.Verify);
 
-                var data = await BeginRead(analogInReader, running);
-                if (calibrate)
-                {
-                    CalibrateFinished(SamplesToModel(data));
-                    return;
-                }
-                OnDataReceived(SamplesToModel(data));
+                data = await BeginRead(analogInReader, running);                                                             
 
+                bool doLoop = false;
                 while (true)
                 {
                     if (_stop)
@@ -133,19 +128,37 @@ namespace BalanceAval.Service
                         running.Stop();
                         break;
                     }
+                    if(doLoop) data = await ContinueRead(data, analogInReader, running);
 
-                    data = await ContinueRead(data, analogInReader, running);
 
-                    OnDataReceived(SamplesToModel(data));
+                    var model = SamplesToModel(data);
+                    var mltmodel = ApplyMultiplication(model);
+                    if (calibrate)
+                    {
+                        CalibrateFinished(model);
+                        return;
+                    }
+                    OnDataReceived(mltmodel);
+                    doLoop = true;
                 }
 
                 // Verify the Task
-
-
             }
             catch (DaqException e)
             {
                 OnError(e.Message);
+            }
+        }
+
+        private IEnumerable<AnalogChannel> ApplyMultiplication(IEnumerable<AnalogChannel> data)
+        {
+            foreach (var x in data)
+            {
+                yield return new AnalogChannel
+                {
+                    Name = x.Name,
+                    Values = x.Values.Select(n => n * MultiplicationFactor).ToList()
+                };
             }
         }
 
@@ -223,9 +236,9 @@ namespace BalanceAval.Service
 
         public async void Stop()
         {
-         
-                await _stateMachine.FireAsync(NidaqTriggers.Stop);
-     
+
+            await _stateMachine.FireAsync(NidaqTriggers.Stop);
+
         }
 
         public event EventHandler<string> Error;
@@ -272,10 +285,10 @@ namespace BalanceAval.Service
                 }
             }
 
-            return channels.Select((i,n)=> AdjuctCalibrate(n,i,_calibration));
+            return channels.Select((i, n) => AdjuctCalibrate(n, i, _calibration));
         }
 
-        public static AnalogChannel AdjuctCalibrate(int index, AnalogChannel channel, double [] cal)
+        public static AnalogChannel AdjuctCalibrate(int index, AnalogChannel channel, double[] cal)
         {
             return new AnalogChannel
             {

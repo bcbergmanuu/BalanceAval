@@ -48,7 +48,7 @@
 				<ItemsControl.ItemTemplate>
 					<DataTemplate>
 						<StackPanel Orientation="Horizontal">
-							<CheckBox Width="70" FontSize="20" Name="Box" Content="{Binding ChannelName}" IsChecked="True" />
+							<CheckBox Width="70" FontSize="20" Name="Box" Content="{Binding ChannelName}" IsChecked="False" />
                             <TextBlock Width="70" Margin="5" FontSize="20" Text="{Binding LastItem}" IsVisible="{Binding !#Box.IsChecked}" ></TextBlock>
                             <TextBlock Margin="5" FontSize="20" Text="{Binding SensorName}" IsVisible="{Binding !#Box.IsChecked}"></TextBlock>
 							<lvc:CartesianChart Height="200" Width="600"

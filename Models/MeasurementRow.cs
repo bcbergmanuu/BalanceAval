@@ -4,6 +4,17 @@ using System.ComponentModel.DataAnnotations;
 namespace BalanceAval.Models
 {
 
+    public class SerialRow
+    {
+        public int Z1 { get; set; }
+        public int Z2 { get; set; }
+        public int Z3 { get; set; }
+        public int Z4 { get; set; }
+        public int X1 { get; set; }
+        public int X2 { get; set; }
+        public int Y { get; set; }
+    }
+
     public class CSVFormat
     {
         public float Z1 { get; set; }

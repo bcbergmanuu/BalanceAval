@@ -19,27 +19,28 @@ namespace BalanceAval.ViewModels
 {
     public class MainWindowViewModel : ViewModelBase, IMainWindowViewModel
     {
-        private IReadNidaq _nidaq;
+        private IReadNidaq _nidaq = new ReadNidaq();
         static MainWindowViewModel()
         {
             Errors = new ObservableCollection<ErrorModel>();
         }
 
-        private IReadNidaq ConnectFactory()
-        {
-            return ConnectionOption == ConnectionOptions[0] ? new ReadNidaq() : new ReadSerial();
-        }
+        //private IReadNidaq ConnectFactory()
+        //{
+        //    return ConnectionOption == ConnectionOptions[0] ? new ReadNidaq() : new ReadSerial();
+        //}
 
         public MainWindowViewModel()
         {
-            _nidaq = ConnectFactory();
-            ConnectionOption = ConnectionOptions[1];
+            
+            //_nidaq = ConnectFactory();
+            ConnectionOption = ConnectionOptions[0];
            
             ConfigureStateMachine();
 
             CartesianViewModels = new ObservableCollection<ICartesianViewModel>();
             Slots = new ObservableCollection<MeasurementSlotVM>();
-
+            PrepaireRun();
             foreach (var channelName in ReadNidaq.Channels)
             {
                 CartesianViewModels.Add(new CartesianViewModel(channelName.Value));
@@ -50,7 +51,7 @@ namespace BalanceAval.ViewModels
 
         void PrepaireRun()
         {
-            _nidaq = ConnectFactory();
+            //_nidaq = ConnectFactory();
             _nidaq.Error += NidaqOnError;
             _nidaq.DataReceived += NidaqOnDataReceived;
             _nidaq.CalibrationFinished += _nidaq_CalibrationFinished;
@@ -61,12 +62,12 @@ namespace BalanceAval.ViewModels
             _stateMachine.Fire(NidaqTriggers.CaibratehasFinished);
         }
 
-        void StopRun()
-        {
-            _nidaq.Error -= NidaqOnError;
-            _nidaq.DataReceived -= NidaqOnDataReceived;
-            _nidaq.CalibrationFinished -= _nidaq_CalibrationFinished;
-        }
+        //void StopRun()
+        //{
+        //    _nidaq.Error -= NidaqOnError;
+        //    _nidaq.DataReceived -= NidaqOnDataReceived;
+        //    _nidaq.CalibrationFinished -= _nidaq_CalibrationFinished;
+        //}
 
         private void NidaqOnError(object? sender, string e)
         {
@@ -343,7 +344,7 @@ namespace BalanceAval.ViewModels
         private static readonly List<string> _ConnectionOptions = new List<string>
         {
             "Nidaq",
-            "Serial",
+            //"Serial",
         };
 
         public List<string> ConnectionOptions  => _ConnectionOptions;
@@ -353,9 +354,9 @@ namespace BalanceAval.ViewModels
             get => _connectionOption;
             set
             {
-                StopRun();
+                //StopRun();
                 this.RaiseAndSetIfChanged(ref _connectionOption, value);
-                PrepaireRun();           
+                //PrepaireRun();           
             }
         }
 

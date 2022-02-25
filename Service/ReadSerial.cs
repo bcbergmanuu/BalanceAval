@@ -36,8 +36,8 @@ namespace BalanceAval.Service
         {
             return new SerialPort
             {
-                BaudRate = 9600,
-                PortName = "COM3",
+                BaudRate = 500000,
+                PortName = "COM4",
                 ReadTimeout = 60,
                 WriteTimeout = 60
             };
@@ -88,7 +88,7 @@ namespace BalanceAval.Service
             
             while (true)
             {
-                List<CSVFormat> data = new();
+                List<SerialRow> data = new();
                 // Create a new task
 
                 for (var i = 0; i < buffer; i++)
@@ -128,18 +128,18 @@ namespace BalanceAval.Service
                         return;
                     }
 
-                    var results = values.Select(s => (25167408 - s))
-                        .Select(n => ((float)n) / 140).ToArray();
+                    var results = values.Select(s => (8388608 - s))
+                        .ToArray();
 
-                    CSVFormat entry = new()
+                    SerialRow entry = new()
                     {
                         Z1 = results[0],
-                        Z2 = results[3],
+                        Z2 = results[1],
                         Z3 = results[2],
-                        Z4 = results[1],
-                        X1 = 0,
-                        X2 = 0,
-                        Y = 0,
+                        Z4 = results[3],
+                        X1 = results[4],
+                        X2 = results[5],
+                        Y = results[6],
                     };
                     data.Add(entry);
                 }
@@ -161,7 +161,7 @@ namespace BalanceAval.Service
             OnCalibrationFinished();
         }
 
-        private static IEnumerable<AnalogChannel> SamplesToModel(IEnumerable<CSVFormat> samples)
+        private static IEnumerable<AnalogChannel> SamplesToModel(IEnumerable<SerialRow> samples)
         {
             PropertyInfo[] props = typeof(CSVFormat).GetProperties();
             string[] channelnames = { "z1", "z2", "z3", "z4", "x1", "x2", "y" };
@@ -180,33 +180,12 @@ namespace BalanceAval.Service
                     object value = csvFormat.GetType().GetProperty(model.value.Name).GetValue(csvFormat, null);
                     channel.Values.Add(float.Parse(value.ToString()));
                 }
+                channel.Values.Select(n => n / 300);
                 channels.Add(channel);
-            }
-            foreach (var channel in channels) RemoveSpikes(channel);
+            }            
             return channels.Select((i, n) => ReadNidaq.AdjuctCalibrate(n, i, _calibration));
         }
-
-        private static void RemoveSpikes(AnalogChannel channel)
-        {
-            double previous = 179001;
-            for (int x = 0; x < 4; x++)
-            {
-                bool repeat = false;
-                for (int i = 0; i < channel.Values.Count; i++)
-                {
-                    if (channel.Values[i] > 179000)
-                    {
-                        if (previous < 179000) channel.Values[i] = previous;
-                        else repeat = true;
-                    }
-                    else
-                    {
-                        previous = channel.Values[i];
-                    }
-                }
-                if (!repeat) break;
-            }
-        }
+        
 
         public event EventHandler<IEnumerable<AnalogChannel>>? DataReceived;
         public event EventHandler? CalibrationFinished;
